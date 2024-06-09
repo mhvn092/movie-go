@@ -3,16 +3,26 @@ package util
 import (
 	"context"
 	"fmt"
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"net/http"
+	"time"
 )
 
-func InitDb() *pgx.Conn {
+func InitDb() *pgxpool.Pool {
 	ReadEnv()
 	fmt.Printf("Env File is Read\n")
 
 	databaseUrl := GetEnv(EnvKeys.DATABASE_URL)
-	conn, e := pgx.Connect(context.Background(), databaseUrl)
+
+	config, err := pgxpool.ParseConfig(databaseUrl)
+	if err != nil {
+		ErrorExit(err, "Couldn't parse database url")
+	}
+	config.MaxConns = 10
+	config.MaxConnLifetime = time.Minute * 3
+	config.MaxConnIdleTime = 10
+	conn, e := pgxpool.NewWithConfig(context.Background(), config)
+
 	if e != nil {
 		ErrorExit(e, "Unable to connect to database")
 	}

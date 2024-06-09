@@ -1,17 +1,17 @@
 package config
 
 import (
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"net/http"
 )
 
 type AppConfigStruct struct {
 	Mux *http.ServeMux
-	Db  *pgx.Conn
+	Db  *pgxpool.Pool
 }
 
 var AppConfig *AppConfigStruct
 
-func InitializeAppConfig(mux *http.ServeMux, db *pgx.Conn) {
+func InitializeAppConfig(mux *http.ServeMux, db *pgxpool.Pool) {
 	AppConfig = &AppConfigStruct{mux, db}
 }
