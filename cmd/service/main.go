@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"github.com/jackc/pgx/v5/pgxpool"
 	config "github.com/mhvn092/movie-go/internal"
 	root "github.com/mhvn092/movie-go/internal/rest"

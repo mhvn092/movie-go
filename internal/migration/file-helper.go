@@ -5,9 +5,11 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
+	"strings"
 )
 
-func ReadMigrationsFromDir() []os.DirEntry {
+func ReadMigrationsFromDirSorted() []os.DirEntry {
 	pwd, _ := os.Getwd()
 	files, err := os.ReadDir(pwd + "/migrations/up")
 	if err != nil {
@@ -21,16 +23,48 @@ func ReadMigrationsFromDir() []os.DirEntry {
 	return files
 }
 
-func ReadMigrationFile(filename string, revert bool) *os.File {
+func getMigrationFilePath(filename string, revert bool) string {
 	pwd, _ := os.Getwd()
 	folder := "up"
 	if revert {
 		folder = "down"
 	}
-	migrationFilePath := filepath.Join(pwd+"migrations/"+folder, filename)
+	return filepath.Join(pwd+"migrations/"+folder, filename)
+}
+
+func ReadMigrationFile(filename string, revert bool) *os.File {
+	migrationFilePath := getMigrationFilePath(filename, revert)
+
 	file, err := os.Open(migrationFilePath)
 	if err != nil {
 		util.ErrorExit(err, "could not open the migration file")
 	}
 	return file
+}
+
+func getTheMigrationNameIndex() int {
+	files := ReadMigrationsFromDirSorted()
+	return len(files)
+}
+
+func CreateMigrationFile(name string) {
+	index := getTheMigrationNameIndex()
+	trimmedName := strings.TrimSpace(name)
+	spacedArray := strings.Split(trimmedName, " ")
+	if len(spacedArray) > 1 {
+		trimmedName = strings.Join(spacedArray, "_")
+	}
+	finalName := strconv.Itoa(index) + "_" + trimmedName + ".sql"
+	upPath := getMigrationFilePath(finalName, false)
+	downPath := getMigrationFilePath(finalName, true)
+
+	_, err := os.Create(upPath)
+	if err != nil {
+		util.ErrorExit(err, "could not create up migration file")
+	}
+
+	_, err = os.Create(downPath)
+	if err != nil {
+		util.ErrorExit(err, "could not create down migration file")
+	}
 }

@@ -105,7 +105,7 @@ func ReadAllMigrationsFromDb(conn *pgxpool.Pool) map[string]bool {
 }
 
 func ReadMigrationsFromDirAndApply(conn *pgxpool.Pool, appliedMigrations map[string]bool) {
-	files := ReadMigrationsFromDir()
+	files := ReadMigrationsFromDirSorted()
 
 	for _, file := range files {
 		if strings.HasSuffix(file.Name(), ".sql") {
