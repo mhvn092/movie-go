@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-func ReadMigrationsFromDirSorted() []os.DirEntry {
+func readMigrationsFromDirSorted() []os.DirEntry {
 	pwd, _ := os.Getwd()
 	files, err := os.ReadDir(pwd + "/migrations/up")
 	if err != nil {
@@ -32,7 +32,7 @@ func getMigrationFilePath(filename string, revert bool) string {
 	return filepath.Join(pwd+"migrations/"+folder, filename)
 }
 
-func ReadMigrationFile(filename string, revert bool) *os.File {
+func readMigrationFile(filename string, revert bool) *os.File {
 	migrationFilePath := getMigrationFilePath(filename, revert)
 
 	file, err := os.Open(migrationFilePath)
@@ -43,7 +43,7 @@ func ReadMigrationFile(filename string, revert bool) *os.File {
 }
 
 func getTheMigrationNameIndex() int {
-	files := ReadMigrationsFromDirSorted()
+	files := readMigrationsFromDirSorted()
 	return len(files)
 }
 

@@ -9,7 +9,34 @@ import (
 	"strings"
 )
 
-func ReadTheLastMigrationsFromDb(conn *pgxpool.Pool) string {
+func ensureMigrationTable(conn *pgxpool.Pool) {
+	_, err := conn.Query(context.Background(), checkExistenceOfMigrationTableQuery())
+	if err != nil {
+		util.ErrorExit(err, "could not query the migrations table")
+	}
+}
+
+func readAllMigrationsFromDb(conn *pgxpool.Pool) map[string]bool {
+	var appliedMigrations = make(map[string]bool)
+	rows, err := conn.Query(context.Background(), getAllMigrationQuery())
+	if err != nil {
+		util.ErrorExit(err, "could not query the migrations table")
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			util.ErrorExit(err, "could not read the row from the migrations table")
+		}
+		appliedMigrations[name] = true
+	}
+	if err := rows.Err(); err != nil {
+		util.ErrorExit(err, "could not read the rows from the migrations table")
+	}
+	return appliedMigrations
+}
+
+func readTheLastMigrationsFromDb(conn *pgxpool.Pool) string {
 	rows, err := conn.Query(context.Background(), getLastMigrationQuery())
 	if err != nil {
 		util.ErrorExit(err, "could not query the migrations table")
@@ -22,21 +49,33 @@ func ReadTheLastMigrationsFromDb(conn *pgxpool.Pool) string {
 	return name
 }
 
-func RevertTheLastCommitedMigration(conn *pgxpool.Pool) {
-	lastMigrationName := ReadTheLastMigrationsFromDb(conn)
-	ApplyMigration(conn, lastMigrationName+".sql", true)
+func revertTheLastCommitedMigration(conn *pgxpool.Pool) {
+	lastMigrationName := readTheLastMigrationsFromDb(conn)
+	applyMigration(conn, lastMigrationName+".sql", true)
 }
 
-func ApplyMigration(conn *pgxpool.Pool, filename string, revert bool) {
-	file := ReadMigrationFile(filename, revert)
+func readMigrationsFromDirAndApply(conn *pgxpool.Pool, appliedMigrations map[string]bool) {
+	files := readMigrationsFromDirSorted()
+
+	for _, file := range files {
+		if strings.HasSuffix(file.Name(), ".sql") {
+			var nameWithoutExtension = strings.TrimSuffix(file.Name(), ".sql")
+			if _, applied := appliedMigrations[nameWithoutExtension]; !applied {
+				applyMigration(conn, file.Name(), false)
+			}
+		}
+	}
+}
+func applyMigration(conn *pgxpool.Pool, filename string, revert bool) {
+	file := readMigrationFile(filename, revert)
 	defer file.Close()
 	// Split the SQL statements by `;` and execute them within a transaction
-	sqlStatements := ParseSQLStatements(file)
+	sqlStatements := parseSQLStatements(file)
 
-	RunMigrationStatementsInTransaction(sqlStatements, conn, filename, revert)
+	runMigrationStatementsInTransaction(sqlStatements, conn, filename, revert)
 }
 
-func RunMigrationStatementsInTransaction(sqlStatements map[int]string, conn *pgxpool.Pool, filename string, revert bool) {
+func runMigrationStatementsInTransaction(sqlStatements map[int]string, conn *pgxpool.Pool, filename string, revert bool) {
 	ctx := context.Background()
 	tx, err := conn.Begin(ctx)
 	if err != nil {
@@ -77,42 +116,13 @@ func RunMigrationStatementsInTransaction(sqlStatements map[int]string, conn *pgx
 	fmt.Printf("Applied migration: %s\n", filename)
 }
 
-func EnsureMigrationTable(conn *pgxpool.Pool) {
-	_, err := conn.Query(context.Background(), checkExistenceOfMigrationTableQuery())
-	if err != nil {
-		util.ErrorExit(err, "could not query the migrations table")
-	}
+func RunMigrations(conn *pgxpool.Pool) {
+	ensureMigrationTable(conn)
+	appliedMigrations := readAllMigrationsFromDb(conn)
+	readMigrationsFromDirAndApply(conn, appliedMigrations)
 }
 
-func ReadAllMigrationsFromDb(conn *pgxpool.Pool) map[string]bool {
-	var appliedMigrations = make(map[string]bool)
-	rows, err := conn.Query(context.Background(), getAllMigrationQuery())
-	if err != nil {
-		util.ErrorExit(err, "could not query the migrations table")
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var name string
-		if err := rows.Scan(&name); err != nil {
-			util.ErrorExit(err, "could not read the row from the migrations table")
-		}
-		appliedMigrations[name] = true
-	}
-	if err := rows.Err(); err != nil {
-		util.ErrorExit(err, "could not read the rows from the migrations table")
-	}
-	return appliedMigrations
-}
-
-func ReadMigrationsFromDirAndApply(conn *pgxpool.Pool, appliedMigrations map[string]bool) {
-	files := ReadMigrationsFromDirSorted()
-
-	for _, file := range files {
-		if strings.HasSuffix(file.Name(), ".sql") {
-			var nameWithoutExtension = strings.TrimSuffix(file.Name(), ".sql")
-			if _, applied := appliedMigrations[nameWithoutExtension]; !applied {
-				ApplyMigration(conn, file.Name(), false)
-			}
-		}
-	}
+func RevertTheLastMigration(conn *pgxpool.Pool) {
+	ensureMigrationTable(conn)
+	revertTheLastCommitedMigration(conn)
 }

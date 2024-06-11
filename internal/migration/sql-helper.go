@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func ParseSQLStatements(file *os.File) map[int]string {
+func parseSQLStatements(file *os.File) map[int]string {
 	scanner := bufio.NewScanner(file)
 	sqlStatements := make(map[int]string)
 	var sqlBuilder strings.Builder
