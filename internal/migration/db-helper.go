@@ -2,6 +2,7 @@ package migration
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/mhvn092/movie-go/internal/util"
@@ -10,10 +11,12 @@ import (
 )
 
 func ensureMigrationTable(conn *pgxpool.Pool) {
-	_, err := conn.Query(context.Background(), checkExistenceOfMigrationTableQuery())
+	row, err := conn.Query(context.Background(), checkExistenceOfMigrationTableQuery())
+	defer row.Close()
 	if err != nil {
 		util.ErrorExit(err, "could not query the migrations table")
 	}
+	fmt.Println("ensured migrations table exist")
 }
 
 func readAllMigrationsFromDb(conn *pgxpool.Pool) map[string]bool {
@@ -42,9 +45,18 @@ func readTheLastMigrationsFromDb(conn *pgxpool.Pool) string {
 		util.ErrorExit(err, "could not query the migrations table")
 	}
 	defer rows.Close()
+
 	var name string
-	if err := rows.Scan(&name); err != nil {
-		util.ErrorExit(err, "could not read the row from the migrations table")
+
+	if rows.Next() {
+		if err := rows.Scan(&name); err != nil {
+			util.ErrorExit(err, "could not read the row from the migrations table")
+		}
+	} else {
+		if err := rows.Err(); err != nil {
+			util.ErrorExit(err, "error occurred during row iteration")
+		}
+		util.ErrorExit(errors.New("no rows found"), "could not find any migrations")
 	}
 	return name
 }
@@ -56,7 +68,10 @@ func revertTheLastCommitedMigration(conn *pgxpool.Pool) {
 
 func readMigrationsFromDirAndApply(conn *pgxpool.Pool, appliedMigrations map[string]bool) {
 	files := readMigrationsFromDirSorted()
-
+	if len(files) == 0 {
+		fmt.Println("no migration to run")
+		return
+	}
 	for _, file := range files {
 		if strings.HasSuffix(file.Name(), ".sql") {
 			var nameWithoutExtension = strings.TrimSuffix(file.Name(), ".sql")

@@ -1,6 +1,7 @@
 package migration
 
 import (
+	"fmt"
 	"github.com/mhvn092/movie-go/internal/util"
 	"os"
 	"path/filepath"
@@ -29,7 +30,7 @@ func getMigrationFilePath(filename string, revert bool) string {
 	if revert {
 		folder = "down"
 	}
-	return filepath.Join(pwd+"migrations/"+folder, filename)
+	return filepath.Join(pwd, "migrations", folder, filename)
 }
 
 func readMigrationFile(filename string, revert bool) *os.File {
@@ -54,7 +55,7 @@ func CreateMigrationFile(name string) {
 	if len(spacedArray) > 1 {
 		trimmedName = strings.Join(spacedArray, "_")
 	}
-	finalName := strconv.Itoa(index) + "_" + trimmedName + ".sql"
+	finalName := strconv.Itoa(index+1) + "_" + trimmedName + ".sql"
 	upPath := getMigrationFilePath(finalName, false)
 	downPath := getMigrationFilePath(finalName, true)
 
@@ -67,4 +68,5 @@ func CreateMigrationFile(name string) {
 	if err != nil {
 		util.ErrorExit(err, "could not create down migration file")
 	}
+	fmt.Println("migration file with the name " + finalName + " is created")
 }
