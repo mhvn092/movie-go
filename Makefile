@@ -19,6 +19,7 @@ ifndef NAME
 	@echo "NAME is not set. Usage: make create NAME=\"<name>\""
 	exit 1
 endif
+	@echo "Provided NAME: $(NAME). You Should wrap your name inside double quotes"
 	/tmp/bin/${MIGRATION_NAME} create -name $(NAME)
 
 up: migrate

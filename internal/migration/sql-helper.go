@@ -58,7 +58,7 @@ func getAllMigrationQuery() string {
 func getUpdatingMigrationTableQuery(revert bool) string {
 	migrationTableStatement := `INSERT INTO migrations (name) VALUES ($1)`
 	if revert {
-		migrationTableStatement = `DELETE FROM migration where name = $1`
+		migrationTableStatement = `DELETE FROM migrations where name = $1`
 	}
 	return migrationTableStatement
 }
