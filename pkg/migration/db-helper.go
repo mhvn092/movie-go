@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/mhvn092/movie-go/internal/util"
+	"github.com/mhvn092/movie-go/pkg/exception"
 	"log"
 	"strings"
 )
@@ -14,7 +14,7 @@ func ensureMigrationTable(conn *pgxpool.Pool) {
 	row, err := conn.Query(context.Background(), checkExistenceOfMigrationTableQuery())
 	defer row.Close()
 	if err != nil {
-		util.ErrorExit(err, "could not query the migrations table")
+		exception.ErrorExit(err, "could not query the migrations table")
 	}
 	fmt.Println("ensured migrations table exist")
 }
@@ -23,18 +23,18 @@ func readAllMigrationsFromDb(conn *pgxpool.Pool) map[string]bool {
 	var appliedMigrations = make(map[string]bool)
 	rows, err := conn.Query(context.Background(), getAllMigrationQuery())
 	if err != nil {
-		util.ErrorExit(err, "could not query the migrations table")
+		exception.ErrorExit(err, "could not query the migrations table")
 	}
 	defer rows.Close()
 	for rows.Next() {
 		var name string
 		if err := rows.Scan(&name); err != nil {
-			util.ErrorExit(err, "could not read the row from the migrations table")
+			exception.ErrorExit(err, "could not read the row from the migrations table")
 		}
 		appliedMigrations[name] = true
 	}
 	if err := rows.Err(); err != nil {
-		util.ErrorExit(err, "could not read the rows from the migrations table")
+		exception.ErrorExit(err, "could not read the rows from the migrations table")
 	}
 	return appliedMigrations
 }
@@ -42,7 +42,7 @@ func readAllMigrationsFromDb(conn *pgxpool.Pool) map[string]bool {
 func readTheLastMigrationsFromDb(conn *pgxpool.Pool) string {
 	rows, err := conn.Query(context.Background(), getLastMigrationQuery())
 	if err != nil {
-		util.ErrorExit(err, "could not query the migrations table")
+		exception.ErrorExit(err, "could not query the migrations table")
 	}
 	defer rows.Close()
 
@@ -50,13 +50,13 @@ func readTheLastMigrationsFromDb(conn *pgxpool.Pool) string {
 
 	if rows.Next() {
 		if err := rows.Scan(&name); err != nil {
-			util.ErrorExit(err, "could not read the row from the migrations table")
+			exception.ErrorExit(err, "could not read the row from the migrations table")
 		}
 	} else {
 		if err := rows.Err(); err != nil {
-			util.ErrorExit(err, "error occurred during row iteration")
+			exception.ErrorExit(err, "error occurred during row iteration")
 		}
-		util.ErrorExit(errors.New("no rows found"), "could not find any migrations")
+		exception.ErrorExit(errors.New("no rows found"), "could not find any migrations")
 	}
 	return name
 }
@@ -101,13 +101,13 @@ func runMigrationStatementsInTransaction(sqlStatements map[int]string, conn *pgx
 		if err != nil {
 			e := tx.Rollback(ctx)
 			if e != nil {
-				util.ErrorExit(err, "could not rollback transaction")
+				exception.ErrorExit(err, "could not rollback transaction")
 			}
-			util.ErrorExit(err, fmt.Sprintf("Transaction rolled back for migration %s", filename))
+			exception.ErrorExit(err, fmt.Sprintf("Transaction rolled back for migration %s", filename))
 		} else {
 			err = tx.Commit(ctx)
 			if err != nil {
-				util.ErrorExit(err, fmt.Sprintf("Failed to commit transaction for migration %s", filename))
+				exception.ErrorExit(err, fmt.Sprintf("Failed to commit transaction for migration %s", filename))
 			}
 		}
 	}()

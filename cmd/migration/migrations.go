@@ -2,22 +2,24 @@ package main
 
 import (
 	"errors"
-	"github.com/mhvn092/movie-go/internal/migration"
-	"github.com/mhvn092/movie-go/internal/util"
 	"os"
 	"strings"
+
+	"github.com/mhvn092/movie-go/internal/util"
+	"github.com/mhvn092/movie-go/pkg/exception"
+	"github.com/mhvn092/movie-go/pkg/migration"
 )
 
 var validCommand = [3]string{"up", "down", "create"}
 
 func main() {
 	if len(os.Args) < 2 {
-		util.ErrorExit(errors.New("no args provided"), "you should provide the arguments")
+		exception.ErrorExit(errors.New("no args provided"), "you should provide the arguments")
 	}
 
 	command := os.Args[1]
 	if !isValidCommand(command) {
-		util.ErrorExit(errors.New("args not valid"), "you should provide valid arguments")
+		exception.ErrorExit(errors.New("args not valid"), "you should provide valid arguments")
 	}
 
 	switch command {
@@ -28,7 +30,7 @@ func main() {
 	case "down":
 		handleDownCommand()
 	default:
-		util.ErrorExit(errors.New("unknown command"), "unknown command")
+		exception.ErrorExit(errors.New("unknown command"), "unknown command")
 	}
 }
 
@@ -43,13 +45,13 @@ func isValidCommand(command string) bool {
 
 func handleCreateCommand(args []string) {
 	if len(args) < 2 {
-		util.ErrorExit(errors.New("no name provided"), "you should provide the name")
+		exception.ErrorExit(errors.New("no name provided"), "you should provide the name")
 	}
 
 	name := strings.Join(args[1:], " ")
 
 	if name == "" {
-		util.ErrorExit(errors.New("no name provided"), "you should provide the name")
+		exception.ErrorExit(errors.New("no name provided"), "you should provide the name")
 	}
 
 	migration.CreateMigrationFile(name)

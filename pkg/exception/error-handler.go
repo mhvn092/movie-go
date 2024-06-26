@@ -1,4 +1,4 @@
-package util
+package exception
 
 import (
 	"fmt"
@@ -14,9 +14,9 @@ func ErrorExit(e error, message string) {
 	}
 }
 
-func HttpError(e error, w http.ResponseWriter, message string) {
+func HttpError(e error, w http.ResponseWriter, message string, code int) {
 	if e != nil {
 		err := fmt.Sprintf("%s: the real error(%s)", message, e.Error())
-		http.Error(w, err, 500)
+		http.Error(w, err, code)
 	}
 }

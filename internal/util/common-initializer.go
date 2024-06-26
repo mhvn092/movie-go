@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"net/http"
+	"github.com/mhvn092/movie-go/pkg/env"
+	"github.com/mhvn092/movie-go/pkg/exception"
+	"github.com/mhvn092/movie-go/pkg/router"
 	"sync"
 	"time"
 )
@@ -17,11 +19,11 @@ func createDb() *pgxpool.Pool {
 	var conn *pgxpool.Pool
 	var err error
 
-	databaseUrl := GetEnv(EnvKeys.DATABASE_URL)
+	databaseUrl := env.GetEnv(env.DATABASE_URL)
 
 	config, err := pgxpool.ParseConfig(databaseUrl)
 	if err != nil {
-		ErrorExit(err, "Couldn't parse database url")
+		exception.ErrorExit(err, "Couldn't parse database url")
 	}
 	config.MaxConns = 10
 	config.MaxConnLifetime = time.Minute * 3
@@ -30,7 +32,7 @@ func createDb() *pgxpool.Pool {
 	pgOnce.Do(func() {
 		conn, err = pgxpool.NewWithConfig(context.Background(), config)
 		if err != nil {
-			ErrorExit(err, "Couldn't parse database url")
+			exception.ErrorExit(err, "Couldn't parse database url")
 		}
 	})
 
@@ -38,7 +40,7 @@ func createDb() *pgxpool.Pool {
 }
 
 func InitDb() *pgxpool.Pool {
-	ReadEnv()
+	env.ReadEnv()
 	fmt.Println("Env File is Read")
 
 	conn := createDb()
@@ -47,14 +49,14 @@ func InitDb() *pgxpool.Pool {
 	return conn
 }
 
-func CreateServer() (string, *http.ServeMux) {
-	mux := http.NewServeMux()
+func CreateServer() (string, *router.Router) {
+	r := router.NewRouter()
 
-	host := GetEnv(EnvKeys.HOST)
-	port := GetEnv(EnvKeys.PORT)
+	host := env.GetEnv(env.HOST)
+	port := env.GetEnv(env.PORT)
 
 	url := host + ":" + port
 	fmt.Println("Listening on " + url)
 
-	return url, mux
+	return url, r
 }

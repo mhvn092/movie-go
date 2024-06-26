@@ -1,15 +1,15 @@
 package auth
 
 import (
-	"github.com/mhvn092/movie-go/internal/util"
+	"github.com/mhvn092/movie-go/pkg/router"
 	"net/http"
 )
 
-func AuthMux() http.Handler {
-	authMux := http.NewServeMux()
-	authMux.Handle("/signup", util.Post(http.HandlerFunc(signup)))
+func Router() *router.Router {
+	r := router.NewRouter()
+	r.Post("/signup", signup)
 
-	return http.StripPrefix("/api/v1/auth", authMux)
+	return r
 }
 
 func signup(res http.ResponseWriter, req *http.Request) {

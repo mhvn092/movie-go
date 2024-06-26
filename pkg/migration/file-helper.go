@@ -2,7 +2,7 @@ package migration
 
 import (
 	"fmt"
-	"github.com/mhvn092/movie-go/internal/util"
+	"github.com/mhvn092/movie-go/pkg/exception"
 	"os"
 	"path/filepath"
 	"sort"
@@ -14,7 +14,7 @@ func readMigrationsFromDirSorted() []os.DirEntry {
 	pwd, _ := os.Getwd()
 	files, err := os.ReadDir(pwd + "/migrations/up")
 	if err != nil {
-		util.ErrorExit(err, "could not read the migrations directory")
+		exception.ErrorExit(err, "could not read the migrations directory")
 	}
 
 	// Sort the migration files by name
@@ -38,7 +38,7 @@ func readMigrationFile(filename string, revert bool) *os.File {
 
 	file, err := os.Open(migrationFilePath)
 	if err != nil {
-		util.ErrorExit(err, "could not open the migration file")
+		exception.ErrorExit(err, "could not open the migration file")
 	}
 	return file
 }
@@ -61,12 +61,12 @@ func CreateMigrationFile(name string) {
 
 	_, err := os.Create(upPath)
 	if err != nil {
-		util.ErrorExit(err, "could not create up migration file")
+		exception.ErrorExit(err, "could not create up migration file")
 	}
 
 	_, err = os.Create(downPath)
 	if err != nil {
-		util.ErrorExit(err, "could not create down migration file")
+		exception.ErrorExit(err, "could not create down migration file")
 	}
 	fmt.Println("migration file with the name " + finalName + " is created")
 }

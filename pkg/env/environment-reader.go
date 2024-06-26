@@ -1,25 +1,24 @@
-package util
+package env
 
 import (
+	"fmt"
 	"os"
 	"strings"
 )
 
-var EnvKeys = struct {
-	DATABASE_URL string
-	HOST         string
-	PORT         string
-}{
-	DATABASE_URL: "DATABASE_URL",
-	HOST:         "HOST",
-	PORT:         "PORT",
-}
+const (
+	DATABASE_URL = "DATABASE_URL"
+	HOST         = "HOST"
+	PORT         = "PORT"
+)
+
 var envValues = make(map[string]string)
 
 func readFile(filename string) string {
 	body, err := os.ReadFile(filename)
 	if err != nil {
-		ErrorExit(err, "could not read file")
+		fmt.Println("could not read env file")
+		os.Exit(1)
 	}
 	return string(body)
 }
@@ -29,6 +28,9 @@ func ReadEnv() {
 	file := readFile(pwd + "/.env")
 	keys := strings.Split(file, "\r\n")
 	for _, key := range keys {
+		if key == "" || strings.HasPrefix(key, "#") {
+			continue
+		}
 		keypair := strings.Split(key, "=")
 		envValues[keypair[0]] = keypair[1]
 	}

@@ -3,7 +3,7 @@ package migration
 import (
 	"bufio"
 	"errors"
-	"github.com/mhvn092/movie-go/internal/util"
+	"github.com/mhvn092/movie-go/pkg/exception"
 	"os"
 	"strings"
 )
@@ -32,7 +32,7 @@ func parseSQLStatements(file *os.File) map[int]string {
 	}
 
 	if err := scanner.Err(); err != nil {
-		util.ErrorExit(err, "Failed to scan migration file: %v\n")
+		exception.ErrorExit(err, "Failed to scan migration file: %v\n")
 	}
 
 	// Add any remaining SQL statement that doesn't end with a semicolon
@@ -41,7 +41,7 @@ func parseSQLStatements(file *os.File) map[int]string {
 	}
 
 	if !hasContent {
-		util.ErrorExit(errors.New("migration file is empty"), "Empty file")
+		exception.ErrorExit(errors.New("migration file is empty"), "Empty file")
 	}
 
 	return sqlStatements
