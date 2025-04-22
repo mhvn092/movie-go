@@ -1,9 +1,15 @@
 package models
 
 import (
-	"golang.org/x/crypto/bcrypt"
+	"context"
+	"net/http"
 	"strings"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+	"golang.org/x/crypto/bcrypt"
+
+	"github.com/mhvn092/movie-go/pkg/exception"
 )
 
 type UserRoleType string
@@ -18,19 +24,19 @@ var UserRole = struct {
 
 // User full model
 type User struct {
-	Id          int           `json:"id" db:"id"`
-	FirstName   string        `json:"first_name" db:"first_name"`
-	LastName    string        `json:"last_name" db:"last_name"`
-	Email       string        `json:"email,omitempty" db:"email"`
-	Password    string        `json:"password,omitempty" db:"password"`
-	Role        *UserRoleType `json:"role,omitempty" db:"role"`
-	PhoneNumber *string       `json:"phone_number,omitempty" db:"phone_number"`
-	CreatedAt   time.Time     `json:"created_at,omitempty" db:"created_at"`
-	UpdatedAt   time.Time     `json:"updated_at,omitempty" db:"updated_at"`
+	Id          int          `db:"id"`
+	FirstName   string       `db:"first_name"   json:"first_name"   validate:"is_string"`
+	LastName    string       `db:"last_name"    json:"last_name"    validate:"is_string"`
+	Email       string       `db:"email"        json:"email"        validate:"required, is_string, is_email"`
+	Password    string       `db:"password"     json:"password"     validate:"required, is_string, is_strong_password,min_len=10"`
+	Role        UserRoleType `db:"role"`
+	PhoneNumber string       `db:"phone_number" json:"phone_number" validate:"required, is_string, is_phone_number"`
+	CreatedAt   time.Time    `db:"created_at"`
+	UpdatedAt   time.Time    `db:"updated_at"`
 }
 
 // HashPassword Hash user password with bcrypt
-func (u *User) HashPassword() error {
+func (u *User) hashPassword() error {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return err
@@ -47,25 +53,80 @@ func (u *User) ComparePasswords(password string) error {
 	return nil
 }
 
-// SanitizePassword Sanitize user password
-func (u *User) SanitizePassword() {
-	u.Password = ""
-}
-
 // PrepareCreate Prepare user for register
-func (u *User) PrepareCreate() error {
+func (u *User) prepareCreate() error {
 	u.Email = strings.ToLower(strings.TrimSpace(u.Email))
 	u.Password = strings.TrimSpace(u.Password)
 
-	if err := u.HashPassword(); err != nil {
+	if err := u.hashPassword(); err != nil {
 		return err
 	}
 
-	if u.PhoneNumber != nil {
-		*u.PhoneNumber = strings.TrimSpace(*u.PhoneNumber)
+	if u.Role == "" {
+		u.Role = UserRole.NORMAL
 	}
-	if u.Role == nil {
-		*u.Role = UserRole.NORMAL
-	}
+
+	u.CreatedAt = time.Now()
+	u.UpdatedAt = time.Now()
 	return nil
+}
+
+func (u *User) isUserAlreadyRegisted(w http.ResponseWriter, db *pgxpool.Pool) bool {
+	rows, err := db.Query(
+		context.Background(),
+		"select id from person.users where email = $1",
+		u.Email,
+	)
+	defer rows.Close()
+
+	if err != nil {
+		exception.DefaultQueryFailedHttpError(w, "user is already registered")
+		return true
+	}
+
+	if rows.Next() {
+		var id int
+		if err := rows.Scan(&id); err != nil {
+			exception.DefaultQueryFailedHttpError(w, "user is already registered")
+		}
+	} else {
+		if err := rows.Err(); err != nil {
+			exception.DefaultQueryFailedHttpError(w, "user is already registered")
+		}
+		return false
+	}
+	return true
+}
+
+func (u *User) RegisterUser(w http.ResponseWriter, db *pgxpool.Pool) bool {
+	if u.isUserAlreadyRegisted(w, db) {
+		return false
+	}
+	err := u.prepareCreate()
+	if err != nil {
+		exception.DefaultQueryFailedHttpError(
+			w,
+			"some Error in preparing to create the user happened",
+		)
+		return false
+	}
+
+	_, err = db.Exec(
+		context.Background(),
+		"Insert into person.users (first_name, last_name, email, password, role, phone_number, created_at, updated_at) values($1, $2, $3,$4, $5,$6,$7,$8)",
+		u.FirstName,
+		u.LastName,
+		u.Email,
+		u.Password,
+		u.Role,
+		u.PhoneNumber,
+		u.CreatedAt,
+		u.UpdatedAt,
+	)
+	if err != nil {
+		exception.DefaultQueryFailedHttpError(w, "Some Error in Registering user happened")
+		return false
+	}
+
+	return true
 }

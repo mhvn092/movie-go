@@ -10,6 +10,7 @@ const (
 	DATABASE_URL = "DATABASE_URL"
 	HOST         = "HOST"
 	PORT         = "PORT"
+	ENVIROMENT   = "ENVIROMENT"
 )
 
 var envValues = make(map[string]string)
