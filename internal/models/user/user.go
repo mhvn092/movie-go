@@ -2,6 +2,7 @@ package models
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strings"
 	"time"
@@ -80,21 +81,27 @@ func (u *User) isUserAlreadyRegisted(w http.ResponseWriter, db *pgxpool.Pool) bo
 	defer rows.Close()
 
 	if err != nil {
-		exception.DefaultQueryFailedHttpError(w, "user is already registered")
+		exception.DefaultInternalHttpError(w)
 		return true
 	}
 
 	if rows.Next() {
 		var id int
 		if err := rows.Scan(&id); err != nil {
-			exception.DefaultQueryFailedHttpError(w, "user is already registered")
+			exception.DefaultInternalHttpError(w)
 		}
 	} else {
 		if err := rows.Err(); err != nil {
-			exception.DefaultQueryFailedHttpError(w, "user is already registered")
+			exception.DefaultInternalHttpError(w)
 		}
 		return false
 	}
+	exception.HttpError(
+		errors.New("User is already registered"),
+		w,
+		"User is Already registerd",
+		http.StatusConflict,
+	)
 	return true
 }
 
@@ -104,9 +111,8 @@ func (u *User) RegisterUser(w http.ResponseWriter, db *pgxpool.Pool) bool {
 	}
 	err := u.prepareCreate()
 	if err != nil {
-		exception.DefaultQueryFailedHttpError(
+		exception.DefaultInternalHttpError(
 			w,
-			"some Error in preparing to create the user happened",
 		)
 		return false
 	}
@@ -124,7 +130,7 @@ func (u *User) RegisterUser(w http.ResponseWriter, db *pgxpool.Pool) bool {
 		u.UpdatedAt,
 	)
 	if err != nil {
-		exception.DefaultQueryFailedHttpError(w, "Some Error in Registering user happened")
+		exception.DefaultInternalHttpError(w)
 		return false
 	}
 

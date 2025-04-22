@@ -15,7 +15,7 @@ func signup(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	db := config.AppConfig.Db
+	db := config.GetDbPool()
 
 	if payload.RegisterUser(res, db) {
 		res.Write([]byte("You All Signed Up"))

@@ -29,11 +29,11 @@ func HttpError(e error, w http.ResponseWriter, message string, code int) {
 	}
 }
 
-func DefaultQueryFailedHttpError(w http.ResponseWriter, query string) {
+func DefaultInternalHttpError(w http.ResponseWriter) {
 	HttpError(
-		errors.New("Some Error Happened, Please Try again later"),
+		errors.New("Some Unexpected Error Happened, Please Try again later"),
 		w,
-		query+" Query Failed",
+		"Some Unexpected Error Happened, Please Try again later",
 		http.StatusInternalServerError,
 	)
 }

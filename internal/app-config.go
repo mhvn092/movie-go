@@ -6,13 +6,21 @@ import (
 	"github.com/mhvn092/movie-go/pkg/router"
 )
 
-type AppConfigStruct struct {
-	Mux *router.Router
-	Db  *pgxpool.Pool
+type appConfigStruct struct {
+	mux *router.Router
+	db  *pgxpool.Pool
 }
 
-var AppConfig *AppConfigStruct
+var appConfig *appConfigStruct
+
+func GetDbPool() *pgxpool.Pool {
+	return appConfig.db
+}
+
+func GetRouter() *router.Router {
+	return appConfig.mux
+}
 
 func InitializeAppConfig(mux *router.Router, db *pgxpool.Pool) {
-	AppConfig = &AppConfigStruct{mux, db}
+	appConfig = &appConfigStruct{mux, db}
 }
