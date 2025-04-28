@@ -1,4 +1,4 @@
-package models
+package user
 
 import (
 	"context"
@@ -34,6 +34,11 @@ type User struct {
 	PhoneNumber string       `db:"phone_number" json:"phone_number" validate:"required, is_string, is_phone_number"`
 	CreatedAt   time.Time    `db:"created_at"`
 	UpdatedAt   time.Time    `db:"updated_at"`
+}
+
+type LoginDto struct {
+	Email    string `json:"email"    validate:"required, is_string, is_email"`
+	Password string `json:"password" validate:"required, is_string, is_strong_password"`
 }
 
 // HashPassword Hash user password with bcrypt
@@ -135,4 +140,40 @@ func (u *User) RegisterUser(w http.ResponseWriter, db *pgxpool.Pool) bool {
 	}
 
 	return true
+}
+
+func (login *LoginDto) CheckUser(w http.ResponseWriter, db *pgxpool.Pool) (*User, bool) {
+	rows, err := db.Query(
+		context.Background(),
+		"select id, password from person.users where email = $1",
+		login.Email,
+	)
+	if err != nil {
+		exception.DefaultInternalHttpError(w)
+		return nil, false
+	}
+	defer rows.Close()
+
+	var user User
+	if rows.Next() {
+		if err := rows.Scan(&user.Id, &user.Password); err != nil {
+			exception.DefaultInternalHttpError(w)
+			return nil, false
+		}
+		return &user, true
+	}
+
+	if err := rows.Err(); err != nil {
+		exception.DefaultInternalHttpError(w)
+		return nil, false
+	}
+
+	// No user found
+	exception.HttpError(
+		errors.New("User not found"),
+		w,
+		"User not found",
+		http.StatusNotFound,
+	)
+	return nil, false
 }

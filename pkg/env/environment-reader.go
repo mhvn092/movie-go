@@ -7,10 +7,11 @@ import (
 )
 
 const (
-	DATABASE_URL = "DATABASE_URL"
-	HOST         = "HOST"
-	PORT         = "PORT"
-	ENVIROMENT   = "ENVIROMENT"
+	DATABASE_URL   = "DATABASE_URL"
+	HOST           = "HOST"
+	PORT           = "PORT"
+	ENVIROMENT     = "ENVIROMENT"
+	JWT_SECRET_KEY = "JWT_SECRET_KEY"
 )
 
 var envValues = make(map[string]string)
