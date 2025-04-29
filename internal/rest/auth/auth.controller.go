@@ -3,6 +3,7 @@ package auth
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -20,9 +21,16 @@ func signup(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if payload.RegisterUser(w, db) {
-		w.Write([]byte("You All Signed Up"))
+	if err := payload.RegisterUser(db); err != nil {
+		if err.Error() == strconv.Itoa(http.StatusConflict) {
+			exception.HttpError(err, w, "this user already exist", http.StatusConflict)
+		} else {
+			exception.DefaultInternalHttpError(w)
+		}
+		return
 	}
+
+	w.Write([]byte("You All Signed Up"))
 }
 
 func login(w http.ResponseWriter, req *http.Request) {
@@ -33,12 +41,17 @@ func login(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	user, ok := payload.CheckUser(w, db)
-	if !ok {
+	user, err := payload.CheckUser(db)
+	if err != nil {
+		if err.Error() == strconv.Itoa(http.StatusNotFound) {
+			exception.HttpError(err, w, "this user was not found", http.StatusNotFound)
+		} else {
+			exception.DefaultInternalHttpError(w)
+		}
 		return
 	}
 
-	err := user.ComparePasswords(payload.Password)
+	err = user.ComparePasswords(payload.Password)
 	if err != nil {
 		exception.HttpError(err, w, "email or password is incorrect", http.StatusNotFound)
 		return

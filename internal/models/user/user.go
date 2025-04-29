@@ -4,13 +4,12 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/bcrypt"
-
-	"github.com/mhvn092/movie-go/pkg/exception"
 )
 
 type UserRoleType string
@@ -77,7 +76,7 @@ func (u *User) prepareCreate() error {
 	return nil
 }
 
-func (u *User) isUserAlreadyRegisted(w http.ResponseWriter, db *pgxpool.Pool) bool {
+func (u *User) isUserAlreadyRegisted(db *pgxpool.Pool) error {
 	rows, err := db.Query(
 		context.Background(),
 		"select id from person.users where email = $1",
@@ -86,40 +85,31 @@ func (u *User) isUserAlreadyRegisted(w http.ResponseWriter, db *pgxpool.Pool) bo
 	defer rows.Close()
 
 	if err != nil {
-		exception.DefaultInternalHttpError(w)
-		return true
+		return err
 	}
 
 	if rows.Next() {
 		var id int
-		if err := rows.Scan(&id); err != nil {
-			exception.DefaultInternalHttpError(w)
+		if err = rows.Scan(&id); err != nil {
+			return err
 		}
 	} else {
-		if err := rows.Err(); err != nil {
-			exception.DefaultInternalHttpError(w)
+		if err = rows.Err(); err != nil {
+			return err
 		}
-		return false
+		return nil
 	}
-	exception.HttpError(
-		errors.New("User is already registered"),
-		w,
-		"User is Already registerd",
-		http.StatusConflict,
-	)
-	return true
+
+	return errors.New(strconv.Itoa(http.StatusConflict))
 }
 
-func (u *User) RegisterUser(w http.ResponseWriter, db *pgxpool.Pool) bool {
-	if u.isUserAlreadyRegisted(w, db) {
-		return false
+func (u *User) RegisterUser(db *pgxpool.Pool) error {
+	if err := u.isUserAlreadyRegisted(db); err != nil {
+		return err
 	}
 	err := u.prepareCreate()
 	if err != nil {
-		exception.DefaultInternalHttpError(
-			w,
-		)
-		return false
+		return err
 	}
 
 	_, err = db.Exec(
@@ -135,45 +125,34 @@ func (u *User) RegisterUser(w http.ResponseWriter, db *pgxpool.Pool) bool {
 		u.UpdatedAt,
 	)
 	if err != nil {
-		exception.DefaultInternalHttpError(w)
-		return false
+		return err
 	}
 
-	return true
+	return nil
 }
 
-func (login *LoginDto) CheckUser(w http.ResponseWriter, db *pgxpool.Pool) (*User, bool) {
+func (login *LoginDto) CheckUser(db *pgxpool.Pool) (*User, error) {
 	rows, err := db.Query(
 		context.Background(),
 		"select id, password from person.users where email = $1",
 		login.Email,
 	)
 	if err != nil {
-		exception.DefaultInternalHttpError(w)
-		return nil, false
+		return nil, err
 	}
 	defer rows.Close()
 
 	var user User
 	if rows.Next() {
 		if err := rows.Scan(&user.Id, &user.Password); err != nil {
-			exception.DefaultInternalHttpError(w)
-			return nil, false
+			return nil, err
 		}
-		return &user, true
+		return &user, nil
 	}
 
 	if err := rows.Err(); err != nil {
-		exception.DefaultInternalHttpError(w)
-		return nil, false
+		return nil, err
 	}
 
-	// No user found
-	exception.HttpError(
-		errors.New("User not found"),
-		w,
-		"User not found",
-		http.StatusNotFound,
-	)
-	return nil, false
+	return nil, errors.New(strconv.Itoa(http.StatusNotFound))
 }
