@@ -38,8 +38,13 @@ func (r *Router) applyMiddlewares(handler http.Handler) http.Handler {
 	return handler
 }
 
-func (r *Router) handleMethod(path, method string, handlerFunc http.HandlerFunc) {
-	wrappedHandler := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+func (r *Router) handleMethod(
+	path, method string,
+	handlerFunc http.HandlerFunc,
+	routeMiddlewares ...Middleware,
+) {
+	// Wrap the handlerFunc to enforce HTTP method
+	baseHandler := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if req.Method != method {
 			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 			return
@@ -47,33 +52,38 @@ func (r *Router) handleMethod(path, method string, handlerFunc http.HandlerFunc)
 		handlerFunc(w, req)
 	})
 
-	handler := http.Handler(wrappedHandler)
-	// Apply middlewares to the wrapped handler
+	// Apply route-level middleware (like JWT)
+	handler := http.Handler(baseHandler)
+	for _, m := range routeMiddlewares {
+		handler = m(handler)
+	}
+
+	// Apply global middleware (like logging, CORS, etc.)
 	handler = r.applyMiddlewares(handler)
 
-	// Register the handler with the path
+	// Register with mux (this line is correct)
 	r.mux.Handle(path, handler)
 }
 
 // Post is a custom method to handle POST requests
-func (r *Router) Post(path string, handlerFunc http.HandlerFunc) {
-	r.handleMethod(path, http.MethodPost, handlerFunc)
+func (r *Router) Post(path string, handlerFunc http.HandlerFunc, middlewares ...Middleware) {
+	r.handleMethod(path, http.MethodPost, handlerFunc, middlewares...)
 }
 
-func (r *Router) Get(path string, handlerFunc http.HandlerFunc) {
-	r.handleMethod(path, http.MethodGet, handlerFunc)
+func (r *Router) Get(path string, handlerFunc http.HandlerFunc, middlewares ...Middleware) {
+	r.handleMethod(path, http.MethodGet, handlerFunc, middlewares...)
 }
 
-func (r *Router) Put(path string, handlerFunc http.HandlerFunc) {
-	r.handleMethod(path, http.MethodPut, handlerFunc)
+func (r *Router) Put(path string, handlerFunc http.HandlerFunc, middlewares ...Middleware) {
+	r.handleMethod(path, http.MethodPut, handlerFunc, middlewares...)
 }
 
-func (r *Router) Patch(path string, handlerFunc http.HandlerFunc) {
-	r.handleMethod(path, http.MethodPatch, handlerFunc)
+func (r *Router) Patch(path string, handlerFunc http.HandlerFunc, middlewares ...Middleware) {
+	r.handleMethod(path, http.MethodPatch, handlerFunc, middlewares...)
 }
 
-func (r *Router) Delete(path string, handlerFunc http.HandlerFunc) {
-	r.handleMethod(path, http.MethodDelete, handlerFunc)
+func (r *Router) Delete(path string, handlerFunc http.HandlerFunc, middlewares ...Middleware) {
+	r.handleMethod(path, http.MethodDelete, handlerFunc, middlewares...)
 }
 
 func (r *Router) AddSubRoute(path string, subRouter *Router) {

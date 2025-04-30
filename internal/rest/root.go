@@ -5,13 +5,17 @@ import (
 
 	config "github.com/mhvn092/movie-go/internal"
 	"github.com/mhvn092/movie-go/internal/rest/auth"
+	"github.com/mhvn092/movie-go/internal/rest/middleware"
 	"github.com/mhvn092/movie-go/pkg/exception"
 )
 
 func InitializeRoutes() {
 	r := config.GetRouter()
 	globalPrefix := "/api/v1/"
+	r.Use(middleware.RequestLogger())
+
 	r.Get("/", rootHandler)
+
 	r.AddSubRoute(globalPrefix+"auth/", auth.Router())
 }
 
