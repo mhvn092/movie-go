@@ -134,7 +134,7 @@ func (u *User) RegisterUser(db *pgxpool.Pool) error {
 func (login *LoginDto) CheckUser(db *pgxpool.Pool) (*User, error) {
 	rows, err := db.Query(
 		context.Background(),
-		"select id, password from person.users where email = $1",
+		"select id, password, email, role from person.users where email = $1",
 		login.Email,
 	)
 	if err != nil {
@@ -144,7 +144,7 @@ func (login *LoginDto) CheckUser(db *pgxpool.Pool) (*User, error) {
 
 	var user User
 	if rows.Next() {
-		if err := rows.Scan(&user.Id, &user.Password); err != nil {
+		if err := rows.Scan(&user.Id, &user.Password, &user.Email, &user.Role); err != nil {
 			return nil, err
 		}
 		return &user, nil

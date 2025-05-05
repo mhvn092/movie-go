@@ -14,11 +14,23 @@ import (
 	"github.com/mhvn092/movie-go/pkg/exception"
 )
 
-func signup(w http.ResponseWriter, req *http.Request) {
+func signupAdmin(w http.ResponseWriter, req *http.Request) {
+	signup(w, req, true)
+}
+
+func singnupUser(w http.ResponseWriter, req *http.Request) {
+	signup(w, req, false)
+}
+
+func signup(w http.ResponseWriter, req *http.Request, isAdmin bool) {
 	var payload user.User
 
 	if validator.JsonBodyHasErrors(req, w, &payload) {
 		return
+	}
+
+	if isAdmin {
+		payload.Role = user.UserRole.ADMIN
 	}
 
 	if err := payload.RegisterUser(db); err != nil {
@@ -57,7 +69,7 @@ func login(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	token, err := createToken(user.Email, user.Id)
+	token, err := createToken(user)
 	if err != nil {
 		exception.DefaultInternalHttpError(w)
 		return
@@ -66,11 +78,12 @@ func login(w http.ResponseWriter, req *http.Request) {
 	w.Write([]byte(token))
 }
 
-func createToken(email string, id int) (string, error) {
+func createToken(user *user.User) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		jwt.MapClaims{
-			"id":    id,
-			"email": email,
+			"id":    user.Id,
+			"email": user.Email,
+			"role":  user.Role,
 			"exp":   time.Now().Add(time.Hour * 24).Unix(),
 		})
 
