@@ -37,7 +37,7 @@ type User struct {
 
 type LoginDto struct {
 	Email    string `json:"email"    validate:"required, is_string, is_email"`
-	Password string `json:"password" validate:"required, is_string, is_strong_password"`
+	Password string `json:"password" validate:"required, is_string"`
 }
 
 // HashPassword Hash user password with bcrypt
