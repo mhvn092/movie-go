@@ -10,7 +10,6 @@ import (
 
 	"github.com/mhvn092/movie-go/pkg/env"
 	"github.com/mhvn092/movie-go/pkg/exception"
-	"github.com/mhvn092/movie-go/pkg/router"
 )
 
 var pgOnce sync.Once
@@ -58,16 +57,4 @@ func InitDb() *pgxpool.Pool {
 
 	fmt.Println("Db Connection Established")
 	return conn
-}
-
-func CreateServer() (string, *router.Router) {
-	r := router.NewRouter()
-
-	host := env.GetEnv(env.HOST)
-	port := env.GetEnv(env.PORT)
-
-	url := host + ":" + port
-	fmt.Println("Listening on " + url)
-
-	return url, r
 }

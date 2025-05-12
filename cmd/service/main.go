@@ -22,7 +22,7 @@ func main() {
 func initialize() (*pgxpool.Pool, string, *router.Router) {
 	conn := util.InitDb()
 
-	url, r := util.CreateServer()
+	url, r := root.CreateServer()
 
 	config.InitializeAppConfig(r, conn)
 

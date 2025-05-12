@@ -1,16 +1,21 @@
 package router
 
 import (
+	"context"
+	"errors"
 	"net/http"
+	"strconv"
 	"strings"
+
+	"github.com/mhvn092/movie-go/internal/rest/middleware"
+	"github.com/mhvn092/movie-go/internal/util"
+	"github.com/mhvn092/movie-go/pkg/exception"
 )
 
 type Router struct {
 	mux         *http.ServeMux
-	middlewares []Middleware
+	middlewares []middleware.Middleware
 }
-
-type Middleware func(http.Handler) http.Handler
 
 // NewRouter initializes a new Router
 func NewRouter() *Router {
@@ -26,7 +31,7 @@ func (r *Router) Serve(url string) error {
 	return http.ListenAndServe(url, r.mux)
 }
 
-func (r *Router) Use(middleware Middleware) {
+func (r *Router) Use(middleware middleware.Middleware) {
 	r.middlewares = append(r.middlewares, middleware)
 }
 
@@ -41,7 +46,7 @@ func (r *Router) applyMiddlewares(handler http.Handler) http.Handler {
 func (r *Router) handleMethod(
 	path, method string,
 	handlerFunc http.HandlerFunc,
-	routeMiddlewares ...Middleware,
+	routeMiddlewares ...middleware.Middleware,
 ) {
 	// Wrap the handlerFunc to enforce HTTP method
 	baseHandler := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
@@ -65,24 +70,95 @@ func (r *Router) handleMethod(
 	r.mux.Handle(path, handler)
 }
 
+func (r *Router) GetWithPagination(
+	path string,
+	handlerFunc http.HandlerFunc,
+	middlewares ...middleware.Middleware,
+) {
+	wrapped := func(w http.ResponseWriter, req *http.Request) {
+		query := req.URL.Query()
+
+		limitStr := query.Get("limit")
+		cursorStr := query.Get("cursor_id")
+
+		var (
+			limit  uint64 = 20
+			cursor uint64 = 0
+			err    error
+		)
+
+		if limitStr != "" {
+			if limit, err = strconv.ParseUint(limitStr, 10, 64); err != nil || limit == 0 {
+				exception.HttpError(
+					errors.New("Invalid parameter"),
+					w,
+					"Invalid parameter",
+					http.StatusBadRequest,
+				)
+				return
+			}
+		}
+
+		if cursorStr != "" {
+			if cursor, err = strconv.ParseUint(cursorStr, 10, 64); err != nil {
+				exception.HttpError(
+					errors.New("Invalid parameter"),
+					w,
+					"Invalid parameter",
+					http.StatusBadRequest,
+				)
+				return
+			}
+		}
+
+		param := util.PaginationParam{Limit: limit, CursorID: cursor}
+		ctx := context.WithValue(req.Context(), util.PaginationKey, param)
+		req = req.WithContext(ctx)
+
+		handlerFunc(w, req)
+	}
+
+	r.handleMethod(path, http.MethodGet, wrapped, middlewares...)
+}
+
 // Post is a custom method to handle POST requests
-func (r *Router) Post(path string, handlerFunc http.HandlerFunc, middlewares ...Middleware) {
+func (r *Router) Post(
+	path string,
+	handlerFunc http.HandlerFunc,
+	middlewares ...middleware.Middleware,
+) {
 	r.handleMethod(path, http.MethodPost, handlerFunc, middlewares...)
 }
 
-func (r *Router) Get(path string, handlerFunc http.HandlerFunc, middlewares ...Middleware) {
+func (r *Router) Get(
+	path string,
+	handlerFunc http.HandlerFunc,
+	middlewares ...middleware.Middleware,
+) {
 	r.handleMethod(path, http.MethodGet, handlerFunc, middlewares...)
 }
 
-func (r *Router) Put(path string, handlerFunc http.HandlerFunc, middlewares ...Middleware) {
+func (r *Router) Put(
+	path string,
+	handlerFunc http.HandlerFunc,
+	middlewares ...middleware.Middleware,
+) {
 	r.handleMethod(path, http.MethodPut, handlerFunc, middlewares...)
 }
 
-func (r *Router) Patch(path string, handlerFunc http.HandlerFunc, middlewares ...Middleware) {
+func (r *Router) Patch(
+	path string,
+	handlerFunc http.HandlerFunc,
+	middlewares ...middleware.Middleware,
+) {
 	r.handleMethod(path, http.MethodPatch, handlerFunc, middlewares...)
 }
 
-func (r *Router) Delete(path string, handlerFunc http.HandlerFunc, middlewares ...Middleware) {
+func (r *Router) Delete(
+	path string,
+	handlerFunc http.HandlerFunc,
+	middlewares ...middleware.Middleware,
+) {
 	r.handleMethod(path, http.MethodDelete, handlerFunc, middlewares...)
 }
 

@@ -10,31 +10,20 @@ import (
 	jwt "github.com/golang-jwt/jwt/v5"
 
 	"github.com/mhvn092/movie-go/internal/models/user"
+	"github.com/mhvn092/movie-go/internal/util"
 	"github.com/mhvn092/movie-go/pkg/env"
 	"github.com/mhvn092/movie-go/pkg/exception"
-	"github.com/mhvn092/movie-go/pkg/router"
 )
 
-type contextKey string
-
-const ClaimsKey contextKey = "claims"
-
-type UserClaims struct {
-	Id    int               `json:"id"`
-	Email string            `json:"email"`
-	Role  user.UserRoleType `json:"role"`
-	jwt.RegisteredClaims
-}
-
-func IsAdminAuthorized() router.Middleware {
+func IsAdminAuthorized() Middleware {
 	return authorized(true)
 }
 
-func IsUserAuthorized() router.Middleware {
+func IsUserAuthorized() Middleware {
 	return authorized(false)
 }
 
-func authorized(checkAdmin bool) router.Middleware {
+func authorized(checkAdmin bool) Middleware {
 	secret := env.GetEnv(env.JWT_SECRET_KEY)
 
 	return func(next http.Handler) http.Handler {
@@ -54,7 +43,7 @@ func authorized(checkAdmin bool) router.Middleware {
 
 			token, err := jwt.ParseWithClaims(
 				tokenStr,
-				&UserClaims{},
+				&util.UserClaims{},
 				func(token *jwt.Token) (interface{}, error) {
 					if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 						return nil, fmt.Errorf("unexpected signing method")
@@ -74,7 +63,7 @@ func authorized(checkAdmin bool) router.Middleware {
 			}
 
 			if checkAdmin {
-				claims, ok := token.Claims.(*UserClaims)
+				claims, ok := token.Claims.(*util.UserClaims)
 				if !ok {
 					exception.HttpError(
 						errors.New("Forbidden"),
@@ -95,7 +84,7 @@ func authorized(checkAdmin bool) router.Middleware {
 
 			}
 
-			ctx := context.WithValue(r.Context(), ClaimsKey, token.Claims)
+			ctx := context.WithValue(r.Context(), util.ClaimsKey, token.Claims)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
