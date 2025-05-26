@@ -1,22 +1,21 @@
-package genre
+package genrehandler
 
 import (
 	"encoding/json"
 	"fmt"
 	"net/http"
 
-	models "github.com/mhvn092/movie-go/internal/models/genre"
-	"github.com/mhvn092/movie-go/internal/util"
+	"github.com/mhvn092/movie-go/internal/platform/web"
 	"github.com/mhvn092/movie-go/pkg/exception"
 )
 
 func getAll(w http.ResponseWriter, req *http.Request) {
-	params, ok := util.GetPaginationParam(req)
+	params, ok := web.GetPaginationParam(req)
 	if !ok {
 		return
 	}
 
-	res, nextCursor, err := models.GetAllGenresPaginated(db, params)
+	res, nextCursor, err := service.GetAllPaginated(params)
 	if err != nil {
 		fmt.Println(err)
 		exception.DefaultInternalHttpError(w)
@@ -30,4 +29,13 @@ func getAll(w http.ResponseWriter, req *http.Request) {
 	}
 
 	w.Write([]byte(response))
+}
+
+func insert(w http.ResponseWriter, req *http.Request) {
+}
+
+func edit(w http.ResponseWriter, req *http.Request) {
+}
+
+func delete(w http.ResponseWriter, req *http.Request) {
 }

@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/mhvn092/movie-go/internal/rest/middleware"
-	"github.com/mhvn092/movie-go/internal/util"
+	"github.com/mhvn092/movie-go/internal/platform/middleware"
+	"github.com/mhvn092/movie-go/internal/platform/web"
 	"github.com/mhvn092/movie-go/pkg/exception"
 )
 
@@ -111,8 +111,8 @@ func (r *Router) GetWithPagination(
 			}
 		}
 
-		param := util.PaginationParam{Limit: limit, CursorID: cursor}
-		ctx := context.WithValue(req.Context(), util.PaginationKey, param)
+		param := web.PaginationParam{Limit: limit, CursorID: cursor}
+		ctx := context.WithValue(req.Context(), web.PaginationKey, param)
 		req = req.WithContext(ctx)
 
 		handlerFunc(w, req)

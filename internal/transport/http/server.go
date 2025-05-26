@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"net/http"
 
-	config "github.com/mhvn092/movie-go/internal"
-	"github.com/mhvn092/movie-go/internal/rest/auth"
-	"github.com/mhvn092/movie-go/internal/rest/genre"
-	"github.com/mhvn092/movie-go/internal/rest/middleware"
+	"github.com/mhvn092/movie-go/internal/platform/config"
+	"github.com/mhvn092/movie-go/internal/platform/middleware"
+	authhandler "github.com/mhvn092/movie-go/internal/transport/http/auth"
+	genrehandler "github.com/mhvn092/movie-go/internal/transport/http/genre"
 	"github.com/mhvn092/movie-go/pkg/env"
 	"github.com/mhvn092/movie-go/pkg/exception"
 	"github.com/mhvn092/movie-go/pkg/router"
@@ -28,12 +28,13 @@ func CreateServer() (string, *router.Router) {
 func InitializeRoutes() {
 	r := config.GetRouter()
 	globalPrefix := "/api/v1/"
-	r.Use(middleware.RequestLogger())
+	r.Use(middleware.Logger)
+	r.Use(middleware.RecoverPanic)
 
 	r.Get("/", rootHandler)
 
-	r.AddSubRoute(globalPrefix+"auth/", auth.Router())
-	r.AddSubRoute(globalPrefix+"genre/", genre.Router())
+	r.AddSubRoute(globalPrefix+"auth/", authhandler.Router())
+	r.AddSubRoute(globalPrefix+"genre/", genrehandler.Router())
 }
 
 func rootHandler(w http.ResponseWriter, r *http.Request) {

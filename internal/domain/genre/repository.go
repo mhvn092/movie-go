@@ -1,26 +1,24 @@
-package models
+package genre
 
 import (
 	"context"
-	"time"
 
-	"github.com/jackc/pgx/v5/pgxpool"
-
-	"github.com/mhvn092/movie-go/internal/util"
+	"github.com/mhvn092/movie-go/internal/platform/repository"
+	"github.com/mhvn092/movie-go/internal/platform/web"
 )
 
-type Genre struct {
-	Id        int       `json:"id"                   db:"id"`
-	Title     string    `json:"title"                db:"title"`
-	CreatedAt time.Time `json:"created_at,omitempty" db:"created_at"`
-	UpdatedAt time.Time `json:"updated_at,omitempty" db:"updated_at"`
+type GenreRepository struct {
+	*repository.BaseRepository
 }
 
-func GetAllGenresPaginated(
-	db *pgxpool.Pool,
-	params util.PaginationParam,
+func NewGenreRepository(base *repository.BaseRepository) *GenreRepository {
+	return &GenreRepository{BaseRepository: base}
+}
+
+func (r *GenreRepository) GetAllGenresPaginated(
+	params web.PaginationParam,
 ) (res []Genre, nextCursor int, err error) {
-	rows, err := db.Query(
+	rows, err := r.DB.Query(
 		context.Background(),
 		"select id, title from movie.genre where id >= $1 limit $2",
 		params.CursorID,

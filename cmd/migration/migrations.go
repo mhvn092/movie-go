@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/mhvn092/movie-go/internal/util"
+	"github.com/mhvn092/movie-go/internal/platform/database"
 	"github.com/mhvn092/movie-go/pkg/exception"
 	"github.com/mhvn092/movie-go/pkg/migration"
 )
@@ -58,13 +58,13 @@ func handleCreateCommand(args []string) {
 }
 
 func handleUpCommand() {
-	conn := util.InitDb()
+	conn := database.InitDb()
 	defer conn.Close()
 	migration.RunMigrations(conn)
 }
 
 func handleDownCommand() {
-	conn := util.InitDb()
+	conn := database.InitDb()
 	defer conn.Close()
 	migration.RevertTheLastMigration(conn)
 }
