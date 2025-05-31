@@ -1,7 +1,6 @@
 package security
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -23,6 +22,5 @@ func CreateToken(data UserTokenData) (string, error) {
 		"exp":   time.Now().Add(time.Hour * 24).Unix(),
 	})
 	secretKey := []byte(env.GetEnv(env.JWT_SECRET_KEY))
-	fmt.Println("secret ", env.GetEnv(env.JWT_SECRET_KEY))
 	return token.SignedString(secretKey)
 }

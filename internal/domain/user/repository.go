@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/jackc/pgx/v5"
+
 	"github.com/mhvn092/movie-go/internal/platform/repository"
 )
 
@@ -18,36 +20,27 @@ func NewUserRepository(base *repository.BaseRepository) *UserRepository {
 }
 
 func (r *UserRepository) isUserAlreadyRegisted(email string) error {
-	rows, err := r.DB.Query(
+	var id int
+	err := r.DB.QueryRow(
 		context.Background(),
 		"select id from person.users where email = $1",
 		email,
-	)
-	defer rows.Close()
-
+	).Scan(&id)
 	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil
+		}
 		return err
-	}
-
-	if rows.Next() {
-		var id int
-		if err = rows.Scan(&id); err != nil {
-			return err
-		}
-	} else {
-		if err = rows.Err(); err != nil {
-			return err
-		}
-		return nil
 	}
 
 	return errors.New(strconv.Itoa(http.StatusConflict))
 }
 
-func (r *UserRepository) RegisterUser(u *User) error {
+func (r *UserRepository) registerUser(u *User) error {
 	if err := r.isUserAlreadyRegisted(u.Email); err != nil {
 		return err
 	}
+
 	err := u.prepareToCreate()
 	if err != nil {
 		return err
@@ -72,28 +65,20 @@ func (r *UserRepository) RegisterUser(u *User) error {
 	return nil
 }
 
-func (r *UserRepository) CheckUser(login *LoginDto) (*User, error) {
-	rows, err := r.DB.Query(
+func (r *UserRepository) checkUser(login *LoginDto) (*User, error) {
+	var user User
+
+	err := r.DB.QueryRow(
 		context.Background(),
 		"select id, password, email, role from person.users where email = $1",
 		login.Email,
-	)
+	).Scan(&user.Id, &user.Password, &user.Email, &user.Role)
 	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var user User
-	if rows.Next() {
-		if err := rows.Scan(&user.Id, &user.Password, &user.Email, &user.Role); err != nil {
-			return nil, err
+		if err == pgx.ErrNoRows {
+			return nil, errors.New(strconv.Itoa(http.StatusNotFound))
 		}
-		return &user, nil
-	}
-
-	if err := rows.Err(); err != nil {
 		return nil, err
 	}
 
-	return nil, errors.New(strconv.Itoa(http.StatusNotFound))
+	return &user, nil
 }

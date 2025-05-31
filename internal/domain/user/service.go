@@ -18,11 +18,11 @@ func (s *UserService) Register(u *User, isAdmin bool) error {
 	if isAdmin {
 		u.Role = UserRole.ADMIN
 	}
-	return s.repo.RegisterUser(u)
+	return s.repo.registerUser(u)
 }
 
 func (s *UserService) Login(loginDto *LoginDto) (*User, error) {
-	user, err := s.repo.CheckUser(loginDto)
+	user, err := s.repo.checkUser(loginDto)
 	if err != nil {
 		return nil, err
 	}

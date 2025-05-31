@@ -11,5 +11,9 @@ func NewGenreService(repo *GenreRepository) *GenreService {
 }
 
 func (s *GenreService) GetAllPaginated(p web.PaginationParam) ([]Genre, int, error) {
-	return s.repo.GetAllGenresPaginated(p)
+	return s.repo.getAllGenresPaginated(p)
+}
+
+func (s *GenreService) Insert(genre *Genre) (int, error) {
+	return s.repo.insert(genre)
 }
