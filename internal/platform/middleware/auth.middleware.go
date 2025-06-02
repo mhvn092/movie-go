@@ -55,7 +55,6 @@ func authorized(checkAdmin bool) Middleware {
 				return
 			}
 
-			fmt.Println("before claims shit")
 			claims, ok := token.Claims.(*security.UserClaims)
 			if !ok {
 				exception.HttpError(

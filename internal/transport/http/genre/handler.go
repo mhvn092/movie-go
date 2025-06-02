@@ -2,6 +2,7 @@ package genrehandler
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -54,7 +55,67 @@ func insert(w http.ResponseWriter, req *http.Request) {
 }
 
 func edit(w http.ResponseWriter, req *http.Request) {
+	idString := req.PathValue("id")
+	if idString == "" {
+		exception.HttpError(
+			errors.New("No Id Provided"),
+			w,
+			"No Id Provided",
+			http.StatusBadRequest,
+		)
+		return
+	}
+
+	id, err := strconv.Atoi(idString)
+	if err != nil {
+		exception.DefaultInternalHttpError(w)
+		return
+	}
+	var payload genre.Genre
+	if validator.JsonBodyHasErrors(req, w, &payload) {
+		return
+	}
+
+	if err := service.Edit(id, &payload); err != nil {
+		if err.Error() == strconv.Itoa(http.StatusConflict) {
+			exception.HttpError(err, w, "genre already exists", http.StatusConflict)
+		} else if err.Error() == strconv.Itoa(http.StatusNotFound) {
+			exception.HttpError(err, w, "genre not found", http.StatusNotFound)
+		} else {
+			exception.DefaultInternalHttpError(w)
+		}
+		return
+	}
+	w.WriteHeader(http.StatusAccepted)
+	w.Write([]byte("Success"))
 }
 
 func delete(w http.ResponseWriter, req *http.Request) {
+	idString := req.PathValue("id")
+	if idString == "" {
+		exception.HttpError(
+			errors.New("No Id Provided"),
+			w,
+			"No Id Provided",
+			http.StatusBadRequest,
+		)
+		return
+	}
+
+	id, err := strconv.Atoi(idString)
+	if err != nil {
+		exception.DefaultInternalHttpError(w)
+		return
+	}
+
+	if err := service.Delete(id); err != nil {
+		if err.Error() == strconv.Itoa(http.StatusNotFound) {
+			exception.HttpError(err, w, "genre not found", http.StatusNotFound)
+		} else {
+			exception.DefaultInternalHttpError(w)
+		}
+		return
+	}
+	w.WriteHeader(http.StatusAccepted)
+	w.Write([]byte("Success"))
 }

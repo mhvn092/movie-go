@@ -57,12 +57,12 @@ func (r *GenreRepository) getAllGenresPaginated(
 	return
 }
 
-func (r *GenreRepository) checkIfExists(title string) (bool, error) {
+func (r *GenreRepository) checkIfExists(query string, args ...interface{}) (bool, error) {
 	var genreId int
 	err := r.DB.QueryRow(
 		context.Background(),
-		"select id from movie.genre where title = $1",
-		title,
+		query,
+		args...,
 	).Scan(&genreId)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -70,12 +70,23 @@ func (r *GenreRepository) checkIfExists(title string) (bool, error) {
 		}
 		return false, err
 	}
-
 	return true, nil
 }
 
+func (r *GenreRepository) checkIfExistsByTitle(title string) (bool, error) {
+	return r.checkIfExists("select id from movie.genre where title = $1", title)
+}
+
+func (r *GenreRepository) checkIfExistsById(id int) (bool, error) {
+	return r.checkIfExists("select id from movie.genre where id = $1", id)
+}
+
+func (r *GenreRepository) checkIfExistsByNameExcludingId(id int, title string) (bool, error) {
+	return r.checkIfExists("select id from movie.genre where title = $1 and id <> $2", title, id)
+}
+
 func (r *GenreRepository) insert(genre *Genre) (int, error) {
-	exists, err := r.checkIfExists(genre.Title)
+	exists, err := r.checkIfExistsByTitle(genre.Title)
 	if err != nil {
 		return 0, err
 	}
@@ -106,4 +117,65 @@ func (r *GenreRepository) insert(genre *Genre) (int, error) {
 	}
 
 	return genreId, nil
+}
+
+func (r *GenreRepository) edit(id int, genre *Genre) error {
+	exists, err := r.checkIfExistsById(id)
+	if err != nil {
+		return err
+	}
+
+	if !exists {
+		return errors.New(strconv.Itoa(http.StatusNotFound))
+	}
+
+	exists, err = r.checkIfExistsByNameExcludingId(id, genre.Title)
+	if err != nil {
+		return err
+	}
+
+	if exists {
+		return errors.New(strconv.Itoa(http.StatusConflict))
+	}
+
+	cmdTag, err := r.DB.Exec(
+		context.Background(),
+		"update movie.genre set title = $1 where id = $2",
+		genre.Title,
+		id,
+	)
+	if err != nil {
+		return err
+	}
+
+	if cmdTag.RowsAffected() == 0 {
+		return errors.New("Could not update")
+	}
+
+	return nil
+}
+
+func (r *GenreRepository) delete(id int) error {
+	exists, err := r.checkIfExistsById(id)
+	if err != nil {
+		return err
+	}
+
+	if !exists {
+		return errors.New(strconv.Itoa(http.StatusNotFound))
+	}
+	cmdTag, err := r.DB.Exec(
+		context.Background(),
+		"delete from movie.genre where id = $1",
+		id,
+	)
+	if err != nil {
+		return err
+	}
+
+	if cmdTag.RowsAffected() == 0 {
+		return errors.New("Could not delete")
+	}
+
+	return nil
 }
