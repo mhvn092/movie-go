@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/mhvn092/movie-go/pkg/exception"
 )
@@ -49,8 +50,19 @@ func validateInterface(s interface{}) []string {
 				errors = append(errors, field.Name+" must be a string")
 			}
 
+			if rule == "is_int" && field.Type.Kind() != reflect.Int {
+				errors = append(errors, field.Name+" must be a int")
+			}
+
 			if rule == "is_email" && !isValidEmail(value.String()) {
 				errors = append(errors, field.Name+" must be a valid email")
+			}
+
+			if rule == "is_date_string" && !isValidDate(value.String()) {
+				errors = append(
+					errors,
+					field.Name+" must be a valid date string with the format of 2025-07-01",
+				)
 			}
 
 			if rule == "is_strong_password" && !isStrongPassword(value.String()) {
@@ -120,6 +132,11 @@ func parseMinLen(rule string) int {
 	var length int
 	fmt.Sscanf(rule, "min_len=%d", &length)
 	return length
+}
+
+func isValidDate(dateString string) bool {
+	_, err := time.Parse("2006-01-02", dateString)
+	return err == nil
 }
 
 func JsonBodyHasErrors(req *http.Request, w http.ResponseWriter, payload interface{}) bool {

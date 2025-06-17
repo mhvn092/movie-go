@@ -25,3 +25,7 @@ func (s *StaffTypeService) Edit(id int, genre *StaffType) error {
 func (s *StaffTypeService) Delete(id int) error {
 	return s.repo.delete(id)
 }
+
+func (s *StaffTypeService) CheckIfExists(id int) (bool, error) {
+	return s.repo.checkIfExistsById(id)
+}

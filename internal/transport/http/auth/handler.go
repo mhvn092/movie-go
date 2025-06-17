@@ -52,7 +52,6 @@ func login(w http.ResponseWriter, req *http.Request) {
 	token, err := service.GenerateToken(u)
 	if err != nil {
 		exception.DefaultInternalHttpError(w)
-
 		return
 	}
 

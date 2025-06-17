@@ -2,7 +2,6 @@ package genrehandler
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -21,8 +20,8 @@ func getAll(w http.ResponseWriter, req *http.Request) {
 
 	res, nextCursor, err := service.GetAllPaginated(params)
 	if err != nil {
-		fmt.Println(err)
 		exception.DefaultInternalHttpError(w)
+		return
 	}
 
 	w.Header().Add("X-Next-Cursor", fmt.Sprintf("%d", nextCursor))
@@ -30,6 +29,7 @@ func getAll(w http.ResponseWriter, req *http.Request) {
 	response, err := json.Marshal(res)
 	if err != nil {
 		exception.DefaultInternalHttpError(w)
+		return
 	}
 
 	w.Write([]byte(response))
@@ -55,22 +55,11 @@ func insert(w http.ResponseWriter, req *http.Request) {
 }
 
 func edit(w http.ResponseWriter, req *http.Request) {
-	idString := req.PathValue("id")
-	if idString == "" {
-		exception.HttpError(
-			errors.New("No Id Provided"),
-			w,
-			"No Id Provided",
-			http.StatusBadRequest,
-		)
+	id := web.GetIdFromParam(req, w)
+	if id == 0 {
 		return
 	}
 
-	id, err := strconv.Atoi(idString)
-	if err != nil {
-		exception.DefaultInternalHttpError(w)
-		return
-	}
 	var payload genre.Genre
 	if validator.JsonBodyHasErrors(req, w, &payload) {
 		return
@@ -91,20 +80,8 @@ func edit(w http.ResponseWriter, req *http.Request) {
 }
 
 func delete(w http.ResponseWriter, req *http.Request) {
-	idString := req.PathValue("id")
-	if idString == "" {
-		exception.HttpError(
-			errors.New("No Id Provided"),
-			w,
-			"No Id Provided",
-			http.StatusBadRequest,
-		)
-		return
-	}
-
-	id, err := strconv.Atoi(idString)
-	if err != nil {
-		exception.DefaultInternalHttpError(w)
+	id := web.GetIdFromParam(req, w)
+	if id == 0 {
 		return
 	}
 

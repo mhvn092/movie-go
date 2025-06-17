@@ -8,6 +8,7 @@ import (
 	"github.com/mhvn092/movie-go/internal/platform/middleware"
 	authhandler "github.com/mhvn092/movie-go/internal/transport/http/auth"
 	genrehandler "github.com/mhvn092/movie-go/internal/transport/http/genre"
+	staffhandler "github.com/mhvn092/movie-go/internal/transport/http/staff"
 	stafftypehandler "github.com/mhvn092/movie-go/internal/transport/http/staff-type"
 	"github.com/mhvn092/movie-go/pkg/env"
 	"github.com/mhvn092/movie-go/pkg/exception"
@@ -28,18 +29,22 @@ func CreateServer() (string, *router.Router) {
 
 func InitializeRoutes() {
 	r := config.GetRouter()
-	globalPrefix := "/api/v1/"
 	r.Use(middleware.Logger)
 	r.Use(middleware.RecoverPanic)
 
 	r.Get("/", rootHandler)
 
-	r.AddSubRoute(globalPrefix+"auth/", authhandler.Router())
-	r.AddSubRoute(globalPrefix+"genre/", genrehandler.Router())
-	r.AddSubRoute(globalPrefix+"staff-type/", stafftypehandler.Router())
+	r.AddSubRoute(getSubRoute("auth"), authhandler.Router())
+	r.AddSubRoute(getSubRoute("genre"), genrehandler.Router())
+	r.AddSubRoute(getSubRoute("staff-type"), stafftypehandler.Router())
+	r.AddSubRoute(getSubRoute("staff"), staffhandler.Router())
 }
 
 func rootHandler(w http.ResponseWriter, r *http.Request) {
 	_, err := w.Write([]byte("Hello World"))
 	exception.HttpError(err, w, "some error exists", 500)
+}
+
+func getSubRoute(subRoute string) string {
+	return "/api/v1/" + subRoute + "/"
 }

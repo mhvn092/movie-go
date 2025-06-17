@@ -1,4 +1,4 @@
-package stafftypehandler
+package staffhandler
 
 import (
 	"encoding/json"
@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	stafftype "github.com/mhvn092/movie-go/internal/domain/staff-type"
+	"github.com/mhvn092/movie-go/internal/domain/staff"
 	"github.com/mhvn092/movie-go/internal/platform/web"
 	validator "github.com/mhvn092/movie-go/pkg/Validator"
 	"github.com/mhvn092/movie-go/pkg/exception"
@@ -35,15 +35,39 @@ func getAll(w http.ResponseWriter, req *http.Request) {
 	w.Write([]byte(response))
 }
 
+func getDetail(w http.ResponseWriter, req *http.Request) {
+	id := web.GetIdFromParam(req, w)
+	if id == 0 {
+		return
+	}
+
+	res, err := service.GetDetail(id)
+	if err != nil {
+		exception.DefaultInternalHttpError(w)
+		return
+	}
+
+	response, err := json.Marshal(res)
+	if err != nil {
+		exception.DefaultInternalHttpError(w)
+		return
+	}
+
+	w.Write([]byte(response))
+}
+
 func insert(w http.ResponseWriter, req *http.Request) {
-	var payload stafftype.StaffType
+	var payload staff.Staff
 	if validator.JsonBodyHasErrors(req, w, &payload) {
 		return
 	}
 
-	staffTypeId, err := service.Insert(&payload)
+	staffId, err := service.Insert(&payload)
 	if err != nil {
-		if err.Error() == strconv.Itoa(http.StatusConflict) {
+		println("err", err.Error())
+		if err.Error() == strconv.Itoa(http.StatusNotFound) {
+			exception.HttpError(err, w, "staff not found", http.StatusNotFound)
+		} else if err.Error() == strconv.Itoa(http.StatusConflict) {
 			exception.HttpError(err, w, "staff type already exists", http.StatusConflict)
 		} else {
 			exception.DefaultInternalHttpError(w)
@@ -51,7 +75,7 @@ func insert(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	w.Write([]byte(strconv.Itoa(staffTypeId)))
+	w.Write([]byte(strconv.Itoa(staffId)))
 }
 
 func edit(w http.ResponseWriter, req *http.Request) {
@@ -60,16 +84,14 @@ func edit(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	var payload stafftype.StaffType
+	var payload staff.Staff
 	if validator.JsonBodyHasErrors(req, w, &payload) {
 		return
 	}
 
 	if err := service.Edit(id, &payload); err != nil {
-		if err.Error() == strconv.Itoa(http.StatusConflict) {
-			exception.HttpError(err, w, "staff type already exists", http.StatusConflict)
-		} else if err.Error() == strconv.Itoa(http.StatusNotFound) {
-			exception.HttpError(err, w, "staff type not found", http.StatusNotFound)
+		if err.Error() == strconv.Itoa(http.StatusNotFound) {
+			exception.HttpError(err, w, "staff not found", http.StatusNotFound)
 		} else {
 			exception.DefaultInternalHttpError(w)
 		}
