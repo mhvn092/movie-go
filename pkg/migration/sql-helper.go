@@ -3,9 +3,10 @@ package migration
 import (
 	"bufio"
 	"errors"
-	"github.com/mhvn092/movie-go/pkg/exception"
 	"os"
 	"strings"
+
+	"github.com/mhvn092/movie-go/pkg/exception"
 )
 
 func parseSQLStatements(file *os.File) map[int]string {
@@ -14,20 +15,34 @@ func parseSQLStatements(file *os.File) map[int]string {
 	var sqlBuilder strings.Builder
 	statementID := 0
 	hasContent := false
+	currentDelimiter := ";"
 
 	for scanner.Scan() {
 		line := scanner.Text()
 		trimmedLine := strings.TrimSpace(line)
-		if trimmedLine != "" {
-			hasContent = true
-			sqlBuilder.WriteString(trimmedLine)
-			sqlBuilder.WriteString(" ")
-			// If the line ends with a semicolon, consider it the end of a statement
-			if strings.HasSuffix(trimmedLine, ";") {
-				sqlStatements[statementID] = sqlBuilder.String()
-				sqlBuilder.Reset()
-				statementID++
+		if trimmedLine == "" {
+			continue
+		}
+		hasContent = true
+
+		if strings.HasPrefix(trimmedLine, `-- delimiter`) {
+			parts := strings.Fields(trimmedLine)
+			if len(parts) == 3 && parts[1] == "delimiter" {
+				currentDelimiter = parts[2]
 			}
+			continue
+		}
+
+		sqlBuilder.WriteString(trimmedLine)
+		sqlBuilder.WriteString(" ")
+
+		if strings.HasSuffix(trimmedLine, currentDelimiter) {
+			stmt := strings.TrimSpace(sqlBuilder.String())
+			stmt = strings.TrimSuffix(stmt, currentDelimiter)
+			sqlStatements[statementID] = strings.TrimSpace(stmt)
+			sqlBuilder.Reset()
+			statementID++
+			currentDelimiter = ";"
 		}
 	}
 

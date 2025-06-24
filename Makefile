@@ -1,6 +1,6 @@
 MAIN_PACKAGE_PATH := ./cmd/service
 MIGRATION_PACKAGE_PATH := ./cmd/migration
-BINARY_NAME := movie
+BINARY_NAME := movie.exe
 MIGRATION_NAME := migration
 
 .PHONY: build run migrate create up down

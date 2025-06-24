@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 
@@ -144,8 +145,9 @@ func (r *StaffTypeRepository) edit(id int, staffType *StaffType) error {
 
 	cmdTag, err := r.DB.Exec(
 		context.Background(),
-		"update staff.staff_type set title = $1 where id = $2",
+		"update staff.staff_type set title = $1, updated_at = $2 where id = $3",
 		staffType.Title,
+		time.Now(),
 		id,
 	)
 	if err != nil {

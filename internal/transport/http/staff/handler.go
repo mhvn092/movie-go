@@ -35,6 +35,28 @@ func getAll(w http.ResponseWriter, req *http.Request) {
 	w.Write([]byte(response))
 }
 
+func getSearchResults(w http.ResponseWriter, req *http.Request) {
+	searchTerm := req.URL.Query().Get("term")
+	if searchTerm == "" {
+		return
+	}
+
+	res, err := service.GetSearchResults(searchTerm)
+	if err != nil {
+		fmt.Println("error is : ", err)
+		exception.DefaultInternalHttpError(w)
+		return
+	}
+
+	response, err := json.Marshal(res)
+	if err != nil {
+		exception.DefaultInternalHttpError(w)
+		return
+	}
+
+	w.Write([]byte(response))
+}
+
 func getDetail(w http.ResponseWriter, req *http.Request) {
 	id := web.GetIdFromParam(req, w)
 	if id == 0 {

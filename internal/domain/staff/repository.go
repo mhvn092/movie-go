@@ -3,8 +3,11 @@ package staff
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 
@@ -53,6 +56,45 @@ func (r *StaffRepository) getAllStaffPaginated(
 
 	if len(res) > 0 {
 		nextCursor = res[len(res)-1].Id + 1
+	}
+
+	return
+}
+
+func (r *StaffRepository) getSearchResults(
+	searchTerm string,
+) (res []StaffGetAllResponse, err error) {
+	terms := strings.Fields(searchTerm)
+	queryTerm := strings.Join(terms, " <-> ") + ":*"
+	rows, err := r.DB.Query(
+		context.Background(),
+		`SELECT id, first_name, last_name
+    FROM staff.staff
+    WHERE search_vector @@ to_tsquery('simple', $1)
+    LIMIT 10;`,
+		queryTerm,
+	)
+
+	defer rows.Close()
+
+	if err != nil {
+		fmt.Println("the error is the in the query itself")
+		return nil, err
+	}
+
+	res = []StaffGetAllResponse{}
+
+	for rows.Next() {
+		var item StaffGetAllResponse
+		err = rows.Scan(
+			&item.Id,
+			&item.FirstName,
+			&item.LastName,
+		)
+		if err != nil {
+			return
+		}
+		res = append(res, item)
 	}
 
 	return
@@ -131,12 +173,13 @@ func (r *StaffRepository) edit(id int, staff *Staff) error {
 
 	cmdTag, err := r.DB.Exec(
 		context.Background(),
-		"update staff.staff set first_name = $1, last_name = $2, bio = $3, birth_date = $4, staff_type_id =$5 where id = $6",
+		"update staff.staff set first_name = $1, last_name = $2, bio = $3, birth_date = $4, staff_type_id =$5, updated_at = $6 where id = $7",
 		staff.FirstName,
 		staff.LastName,
 		staff.Bio,
 		staff.BirthDate,
 		staff.StaffTypeId,
+		time.Now(),
 		id,
 	)
 	if err != nil {

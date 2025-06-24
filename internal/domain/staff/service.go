@@ -25,6 +25,10 @@ func (s *StaffService) GetAllPaginated(p web.PaginationParam) ([]StaffGetAllResp
 	return s.repo.getAllStaffPaginated(p)
 }
 
+func (s *StaffService) GetSearchResults(searchTerm string) ([]StaffGetAllResponse, error) {
+	return s.repo.getSearchResults(searchTerm)
+}
+
 func (s *StaffService) Insert(staff *Staff) (int, error) {
 	exists, err := s.staffTypeService.CheckIfExists(staff.StaffTypeId)
 	if err != nil {

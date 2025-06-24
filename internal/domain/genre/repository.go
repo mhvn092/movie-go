@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 
@@ -140,8 +141,9 @@ func (r *GenreRepository) edit(id int, genre *Genre) error {
 
 	cmdTag, err := r.DB.Exec(
 		context.Background(),
-		"update movie.genre set title = $1 where id = $2",
+		"update movie.genre set title = $1, updated_at = $2 where id = $3",
 		genre.Title,
+		time.Now(),
 		id,
 	)
 	if err != nil {

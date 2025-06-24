@@ -25,6 +25,7 @@ func Router() *router.Router {
 
 	r.GetWithPagination("/all", getAll)
 	r.Get("/by/{id}", getDetail)
+	r.Get("/search", getSearchResults)
 	r.Post("/create", insert, middleware.AuthAdmin)
 	r.Put("/update/{id}", edit, middleware.AuthAdmin)
 	r.Delete("/delete/{id}", delete, middleware.AuthAdmin)
