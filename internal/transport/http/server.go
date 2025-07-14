@@ -8,6 +8,7 @@ import (
 	"github.com/mhvn092/movie-go/internal/platform/middleware"
 	authhandler "github.com/mhvn092/movie-go/internal/transport/http/auth"
 	genrehandler "github.com/mhvn092/movie-go/internal/transport/http/genre"
+	moviehandler "github.com/mhvn092/movie-go/internal/transport/http/movie"
 	staffhandler "github.com/mhvn092/movie-go/internal/transport/http/staff"
 	stafftypehandler "github.com/mhvn092/movie-go/internal/transport/http/staff-type"
 	"github.com/mhvn092/movie-go/pkg/env"
@@ -38,6 +39,7 @@ func InitializeRoutes() {
 	r.AddSubRoute(getSubRoute("genre"), genrehandler.Router())
 	r.AddSubRoute(getSubRoute("staff-type"), stafftypehandler.Router())
 	r.AddSubRoute(getSubRoute("staff"), staffhandler.Router())
+	r.AddSubRoute(getSubRoute("movie"), moviehandler.Router())
 }
 
 func rootHandler(w http.ResponseWriter, r *http.Request) {

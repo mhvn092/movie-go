@@ -116,6 +116,39 @@ func (r *StaffRepository) checkIfExists(id int) (bool, error) {
 	return true, nil
 }
 
+func (r *StaffRepository) checkCountOfExistingIds(ids []int) (bool, error) {
+	currentCount := len(ids)
+	if currentCount == 0 {
+		return false, nil
+	}
+
+	placeholders := make([]string, currentCount)
+
+	for i := range ids {
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
+	}
+
+	query := fmt.Sprintf(
+		"select count(id) from staff.staff_type where id in (%s)",
+		strings.Join(placeholders, ","),
+	)
+
+	var existingCount int
+	err := r.DB.QueryRow(
+		context.Background(),
+		query,
+		ids,
+	).Scan(&existingCount)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return false, nil
+		}
+		return false, err
+	}
+
+	return existingCount == currentCount, nil
+}
+
 func (r *StaffRepository) getDetail(id int) (StaffGetDetailResponse, error) {
 	var staff StaffGetDetailResponse
 	err := r.DB.QueryRow(

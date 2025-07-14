@@ -29,6 +29,14 @@ func (s *StaffService) GetSearchResults(searchTerm string) ([]StaffGetAllRespons
 	return s.repo.getSearchResults(searchTerm)
 }
 
+func (s *StaffService) CheckIfExists(id int) (bool, error) {
+	return s.repo.checkIfExists(id)
+}
+
+func (s *StaffService) CheckCountOfExistingIds(ids []int) (bool, error) {
+	return s.repo.checkCountOfExistingIds(ids)
+}
+
 func (s *StaffService) Insert(staff *Staff) (int, error) {
 	exists, err := s.staffTypeService.CheckIfExists(staff.StaffTypeId)
 	if err != nil {

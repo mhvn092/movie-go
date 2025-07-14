@@ -18,6 +18,10 @@ func (s *GenreService) Insert(genre *Genre) (int, error) {
 	return s.repo.insert(genre)
 }
 
+func (s *GenreService) CheckIfExists(id int) (bool, error) {
+	return s.repo.checkIfExistsById(id)
+}
+
 func (s *GenreService) Edit(id int, genre *Genre) error {
 	return s.repo.edit(id, genre)
 }

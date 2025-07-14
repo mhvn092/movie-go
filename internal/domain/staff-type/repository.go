@@ -3,8 +3,10 @@ package stafftype
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -72,6 +74,39 @@ func (r *StaffTypeRepository) checkIfExists(query string, args ...interface{}) (
 		return false, err
 	}
 	return true, nil
+}
+
+func (r *StaffTypeRepository) checkCountOfExistingIds(ids []int) (bool, error) {
+	currentCount := len(ids)
+	if currentCount == 0 {
+		return false, nil
+	}
+
+	placeholders := make([]string, currentCount)
+
+	for i := range ids {
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
+	}
+
+	query := fmt.Sprintf(
+		"select count(id) from staff.staff_type where id in (%s)",
+		strings.Join(placeholders, ","),
+	)
+
+	var existingCount int
+	err := r.DB.QueryRow(
+		context.Background(),
+		query,
+		ids,
+	).Scan(&existingCount)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return false, nil
+		}
+		return false, err
+	}
+
+	return existingCount == currentCount, nil
 }
 
 func (r *StaffTypeRepository) checkIfExistsByTitle(title string) (bool, error) {

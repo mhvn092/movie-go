@@ -14,17 +14,36 @@ import (
 	"github.com/mhvn092/movie-go/pkg/exception"
 )
 
-// Validation function using reflection
+// validateInterface validates a struct or slice of structs and returns a list of validation errors.
 func validateInterface(s interface{}) []string {
 	var errors []string
 	val := reflect.ValueOf(s)
 	if val.Kind() == reflect.Ptr {
 		val = val.Elem()
 	}
-	if val.Kind() != reflect.Struct {
-		errors = []string{"invalid interface passed as input"}
+
+	// Handle slices
+	if val.Kind() == reflect.Slice {
+		for i := 0; i < val.Len(); i++ {
+			item := val.Index(i)
+			// Recursively validate each element in the slice
+			itemErrors := validateSingleStruct(item, fmt.Sprintf("[%d]", i))
+			errors = append(errors, itemErrors...)
+		}
 		return errors
 	}
+
+	// Handle structs
+	if val.Kind() != reflect.Struct {
+		return []string{"invalid interface passed as input"}
+	}
+
+	return validateSingleStruct(val, "")
+}
+
+// validateSingleStruct validates a single struct and prefixes field names with context (e.g., "Staffs[0].").
+func validateSingleStruct(val reflect.Value, prefix string) []string {
+	var errors []string
 	typ := val.Type()
 
 	// Loop through struct fields
@@ -32,9 +51,26 @@ func validateInterface(s interface{}) []string {
 		field := typ.Field(i)
 		value := val.Field(i)
 		tag := field.Tag.Get("validate")
+		fieldName := prefix + field.Name
 
 		if tag == "" {
 			continue // Skip fields without validation tags
+		}
+
+		// Handle nested slices
+		if value.Kind() == reflect.Slice {
+			for j := 0; j < value.Len(); j++ {
+				item := value.Index(j)
+				if item.Kind() == reflect.Struct {
+					// Recursively validate each struct in the slice
+					nestedErrors := validateSingleStruct(
+						item,
+						fmt.Sprintf("%s[%d].", fieldName, j),
+					)
+					errors = append(errors, nestedErrors...)
+				}
+			}
+			continue
 		}
 
 		// Split validation rules
@@ -43,34 +79,38 @@ func validateInterface(s interface{}) []string {
 			rule = strings.TrimSpace(rule)
 
 			if rule == "required" && isEmpty(value) {
-				errors = append(errors, field.Name+" is required")
+				errors = append(errors, fieldName+" is required")
 			}
 
-			if rule == "is_string" && field.Type.Kind() != reflect.String {
-				errors = append(errors, field.Name+" must be a string")
+			if rule == "is_string" && value.Type().Kind() != reflect.String {
+				errors = append(errors, fieldName+" must be a string")
 			}
 
-			if rule == "is_int" && field.Type.Kind() != reflect.Int {
-				errors = append(errors, field.Name+" must be a int")
+			if rule == "required" && value.Kind() == reflect.Slice && value.Len() == 0 {
+				errors = append(errors, fieldName+" is required and cannot be empty")
+			}
+
+			if rule == "is_int" && value.Type().Kind() != reflect.Int {
+				errors = append(errors, fieldName+" must be an int")
 			}
 
 			if rule == "is_email" && !isValidEmail(value.String()) {
-				errors = append(errors, field.Name+" must be a valid email")
+				errors = append(errors, fieldName+" must be a valid email")
 			}
 
 			if rule == "is_date_string" && !isValidDate(value.String()) {
 				errors = append(
 					errors,
-					field.Name+" must be a valid date string with the format of 2025-07-01",
+					fieldName+" must be a valid date string with the format of 2025-07-01",
 				)
 			}
 
 			if rule == "is_strong_password" && !isStrongPassword(value.String()) {
-				errors = append(errors, field.Name+" you should choose a strong password")
+				errors = append(errors, fieldName+" you should choose a strong password")
 			}
 
 			if rule == "is_phone_number" && !isValidPhoneNumber(value.String()) {
-				errors = append(errors, field.Name+" phone number is not valid")
+				errors = append(errors, fieldName+" phone number is not valid")
 			}
 
 			if strings.HasPrefix(rule, "min_len=") {
@@ -78,8 +118,17 @@ func validateInterface(s interface{}) []string {
 				if len(value.String()) < minLen {
 					errors = append(
 						errors,
-						field.Name+
-							fmt.Sprintf(" must be at least %d characters long", minLen),
+						fieldName+fmt.Sprintf(" must be at least %d characters long", minLen),
+					)
+				}
+			}
+
+			// Custom validation for ProductionYear
+			if rule == "is_valid_year" && value.Type().Kind() == reflect.Int {
+				if !isValidProductionYear(value.Int()) {
+					errors = append(
+						errors,
+						fieldName+" must be a valid production year between 1888 and 2030",
 					)
 				}
 			}
@@ -87,6 +136,12 @@ func validateInterface(s interface{}) []string {
 	}
 
 	return errors
+}
+
+// isValidProductionYear checks if the year is within a reasonable range.
+func isValidProductionYear(year int64) bool {
+	currentYear := time.Now().Year()
+	return year >= 1888 && year <= int64(currentYear+5) // Allow up to 5 years in the future
 }
 
 // Helper: Check if a value is empty

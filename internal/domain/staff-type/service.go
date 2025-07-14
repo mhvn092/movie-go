@@ -29,3 +29,7 @@ func (s *StaffTypeService) Delete(id int) error {
 func (s *StaffTypeService) CheckIfExists(id int) (bool, error) {
 	return s.repo.checkIfExistsById(id)
 }
+
+func (s *StaffTypeService) CheckCountOfExistingIds(ids []int) (bool, error) {
+	return s.repo.checkCountOfExistingIds(ids)
+}
