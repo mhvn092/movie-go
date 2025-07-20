@@ -123,13 +123,15 @@ func (r *StaffRepository) checkCountOfExistingIds(ids []int) (bool, error) {
 	}
 
 	placeholders := make([]string, currentCount)
+	args := make([]interface{}, currentCount)
 
-	for i := range ids {
+	for i, id := range ids {
 		placeholders[i] = fmt.Sprintf("$%d", i+1)
+		args[i] = id
 	}
 
 	query := fmt.Sprintf(
-		"select count(id) from staff.staff_type where id in (%s)",
+		"select count(id) from staff.staff where id in (%s)",
 		strings.Join(placeholders, ","),
 	)
 
@@ -137,7 +139,7 @@ func (r *StaffRepository) checkCountOfExistingIds(ids []int) (bool, error) {
 	err := r.DB.QueryRow(
 		context.Background(),
 		query,
-		ids,
+		args...,
 	).Scan(&existingCount)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -145,7 +147,6 @@ func (r *StaffRepository) checkCountOfExistingIds(ids []int) (bool, error) {
 		}
 		return false, err
 	}
-
 	return existingCount == currentCount, nil
 }
 

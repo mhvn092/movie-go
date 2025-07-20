@@ -86,9 +86,8 @@ func insert(w http.ResponseWriter, req *http.Request) {
 
 	movieId, err := service.Insert(&payload)
 	if err != nil {
-		println("err", err.Error())
 		if err.Error() == strconv.Itoa(http.StatusNotFound) {
-			exception.HttpError(err, w, "movie not found", http.StatusNotFound)
+			exception.HttpError(err, w, "some of data sent was not found", http.StatusNotFound)
 		} else {
 			exception.DefaultInternalHttpError(w)
 		}
@@ -111,7 +110,12 @@ func edit(w http.ResponseWriter, req *http.Request) {
 
 	if err := service.Edit(id, &payload); err != nil {
 		if err.Error() == strconv.Itoa(http.StatusNotFound) {
-			exception.HttpError(err, w, "movie not found", http.StatusNotFound)
+			exception.HttpError(
+				err,
+				w,
+				"some of your resources were not found",
+				http.StatusNotFound,
+			)
 		} else {
 			exception.DefaultInternalHttpError(w)
 		}

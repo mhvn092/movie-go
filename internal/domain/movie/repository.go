@@ -191,7 +191,7 @@ func (r *MovieRepository) getDetail(id int) (MovieGetDetailResponse, error) {
 	}
 
 	for rows.Next() {
-		err := rows.Scan(
+		err = rows.Scan(
 			new(int),
 			new(string),
 			new(int),
@@ -226,7 +226,7 @@ func (r *MovieRepository) getDetail(id int) (MovieGetDetailResponse, error) {
 	return movie, nil
 }
 
-func (r *MovieRepository) Insert(payload *MovieUpsertPayload) (movieId int, err error) {
+func (r *MovieRepository) insert(payload *MovieUpsertPayload) (movieId int, err error) {
 	ctx := context.Background()
 	tx, err := r.DB.Begin(ctx)
 	if err != nil {
@@ -268,7 +268,7 @@ func (r *MovieRepository) Insert(payload *MovieUpsertPayload) (movieId int, err 
 	return movieId, nil
 }
 
-func (r *MovieRepository) Edit(id int, payload *MovieUpsertPayload) (err error) {
+func (r *MovieRepository) edit(id int, payload *MovieUpsertPayload) (err error) {
 	ctx := context.Background()
 	tx, err := r.DB.Begin(ctx)
 	if err != nil {
