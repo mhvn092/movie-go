@@ -48,11 +48,11 @@ This project is a learning tool for mastering Go syntax, DDD, and building RESTf
    ```
 
 3. Set up environment variables:
-   Create a `.env` file:
-   ```env
-   DATABASE_URL=postgres://user:password@localhost:5432/movie_db
-   JWT_SECRET=your_jwt_secret_key
+   Copy the example environment file and update it with your local database credentials.
+   ```bash
+   cp .env.example .env
    ```
+   Now, edit the `.env` file with your details.
 
 4. Run migrations:
    ```bash
